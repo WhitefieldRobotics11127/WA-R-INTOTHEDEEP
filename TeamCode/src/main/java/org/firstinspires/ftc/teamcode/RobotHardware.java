@@ -1,11 +1,38 @@
 // This file not meant for redistribution - copyright notice removed
+/*
+ * This class provides a hardware abstraction layer for WA Robotics INTO THE DEEP competition robot.
+ *
+ * This RobotHardware class is modified from the FTC SDK example code and was rebuilt from the
+ * ground up in the 2024-2025 season in conjunction with a new crop of students and mentors.
+ *
+ * Support for Mecanum (Omni) drivetrain, odometry, IMU, and vision processing is included, which
+ * can (hopefully) be reused from year to year. Support for INTO THE DEEP game-specific hardware,
+ * such as the Viper-Slide arm and the servos for the claw are season-specific but can serve as
+ * examples , will be added as needed.
+ *
+ * Also included in this class are methods and classes for performing autonomous motion using
+ * odometry. Multiple options (direct drive, strafe, and rotate commands; relative X, Y, and heading
+ * changes; and move and rotate to absolute field coordinates) are included.
+ *
+ * Many parameter values must be tuned for the specific robot and competition, and these are noted
+ * in the comments.
+ *
+ * To simplify all calculations, all lengths are in MM and all angles are in radians. The FTC
+ * coordinate system is used, with the +X-axis forward, the +Y-axis to the left, the +Z-axis up,
+ * and +Yaw is counterclockwise.
+ */
 
 package org.firstinspires.ftc.teamcode;
 
+/*
+ * For the most part, imports are managed by the Android Studio IDE through the "Auto Import"
+ * feature setting (under File->Settings, drill down to Editor>General>Auto Import), but may
+ * occasionally need to be cleaned up to remove unused imports.
+ */
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import  com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -22,15 +49,55 @@ public class RobotHardware {
 
     /*
      * Define constant values for interfacing with hardware devices (public so they CAN be used
-     * by the calling OpMode
+     * by the calling OpMode - just in case).
      */
 
-    /* Drive constants - allow OMNI-wheel drivetrain to operate in different at different, selectable "speeds" */
-    public  static final double OMNI_MOTOR_POWER_LIMIT_NORMAL = 0.65; // Normal power limit
-    public static final double OMNI_MOTOR_POWER_LIMIT_SPRINT = 1.0; // Sprint power limit
-    public static final double OMNI_MOTOR_POWER_LIMIT_PRECISE = 0.4; // Precise positioning power limit
+    /*
+     * Constants for drivetrain
+     * Even though all robots will likely use four-motor Mecanum (Omni) drivetrains, these constants
+     * may have to be modified each year based on the robots mechanical configuration, weight, and
+     * performance
+     */
+    
+    // Allow drivetrain to operate in different at different, selectable "speeds"
+    public  static final double MOTOR_SPEED_FACTOR_NORMAL = 0.65; // Normal power limit
+    public static final double MOTOR_SPEED_FACTOR_SPRINT = 1.0; // Sprint power limit
+    public static final double MOTOR_SPEED_FACTOR_PRECISE = 0.4; // Precise positioning power limit
+    
+    // Correction factors for individual motors to account for mechanical differences
+    // NOTE: If the robot is not driving straight, adjust these values to correct the issue.
+    // NOTE: these values may not be needed if all motors are using encoders and the run modes
+    // are set to RUN_USING_ENCODER
+    public static final double OMNI_CORRECTION_LEFT_FRONT = 1.0; // Correction factor for left front motor
+    public static final double OMNI_CORRECTION_RIGHT_FRONT = 1.0; // Correction factor for right front motor
+    public static final double OMNI_CORRECTION_LEFT_BACK = 1.0; // Correction factor for left back motor
+    public static final double OMNI_CORRECTION_RIGHT_BACK = 1.0; // Correction factor for right back motor
 
-    /* PID Controller constants - for performing moveTo() and rotateTo() operations in autonomous driving */
+    /*
+     * Odometry constants - these are used in the calculation of the current position (relative
+     * movement and field coordinates). The values are initially set from physical measurements of
+     * the robot but should be tweaked for accuracy from testing (e.g., spin test and/or
+     * strafe/curve testing).
+     */
+    public static final double DEADWHEEL_MM_PER_TICK = 0.0754; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
+    public static final double DEADWHEEL_FORWARD_OFFSET = 138.55; //forward offset (length B) of aux deadwheel from robot center of rotation in MM
+    public static final double DEADWHEEL_TRACKWIDTH = 332.51; // distance (length L) between left and right deadwheels in MM
+
+    /*
+     * Arm (Viper-Slide) constants
+     ****** STILL UNDER DEVELOPMENT ******
+     */
+
+    /*
+     * Constants for autonomous motion routines
+     ****** STILL UNDER DEVELOPMENT ******
+     */
+
+    // Tolerance values for moveTo() and rotateTo() operations
+    public static final double MOVE_POSITION_TOLERANCE = 10.0; // Tolerance for position in MM
+    public static final double ROTATE_HEADING_TOLERANCE = 0.0174533; // Tolerance for heading in radians (1 degree)
+
+    // PID Controller gain values for each of the three control loops (X, Y, and heading)
     public static final double PID_CONTROLLER_X_KP = 0.1; // Proportional gain for X position
     public static final double PID_CONTROLLER_X_KI = 0.0; // Integral gain for X position
     public static final double PID_CONTROLLER_X_KD = 0.0; // Derivative gain for X position
@@ -40,41 +107,45 @@ public class RobotHardware {
     public static final double PID_CONTROLLER_HEADING_KP = 0.1; // Proportional gain for heading
     public static final double PID_CONTROLLER_HEADING_KI = 0.0; // Integral gain for heading
     public static final double PID_CONTROLLER_HEADING_KD = 0.0; // Derivative gain for heading
-    public static final double PID_POSITION_TOLERANCE = 10.0; // Tolerance for position in MM
-    public static final double PID_HEADING_TOLERANCE = 0.0174533; // Tolerance for heading in radians (1 degree)
 
-
-    /*
-     * Odometry constants - these are used in the calculation of the current position (field coordinates).
-     * The values are initially set from physical measurements of the robot but should be tweaked for accuracy
-     * from testing (e.g., spin test and/or strafe/curve testing
-     */
-    public static final double DEADWHEEL_MM_PER_TICK = 0.0754; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
-    public static final double DEADWHEEL_FORWARD_OFFSET = 138.55; //forward offset (length B) of aux deadwheel from robot center of rotation in MM
-    public static final double DEADWHEEL_TRACKWIDTH = 332.51; // distance (length L) between left and right deadwheels in MM
-
-    /* Arm (Viper-Slide) constants */
-
+    
     /*
      * Member variables (private to hide from the calling opmode)
      */
 
-    /* Hardware objects */
+    /*
+     * Hardware objects for current robot hardware
+     */
     private DcMotorEx leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive;  //  Motors for Mecanum drive
     private DcMotor encoderRight, encoderLeft, encoderAux; // Encoders (deadwheels) for odometry
     private IMU imu; // IMU built into Rev Control Hub
-
-    /* Vision portal and AprilTag processor */
+    
     private VisionPortal visionPortal; // Used to manage the video source.
-    private AprilTagProcessor aprilTag; // Used for managing the AprilTag detection processor */
+    private AprilTagProcessor aprilTag; // Used for managing the AprilTag detection processor 
 
-    private int currentRightCounter, currentLeftCounter, currentAuxCounter; // Odometry counters
+    /*
+     * Variables for tracking robot state     
+     */
+    // last read odometry deadwheel encoder positions 
+    // NOTE: these are used to calculate encoder deltas since last call to updateOdometry() 
+    private int lastRightEncoderPosition, lastLeftEncoderPosition, lastAuxEncoderPosition;
 
-    private Pose2D currentPosition; // Current robot vector (X,Y position and heading)
+    // translated x, y, and heading odometry counters in mm since last reset
+    // NOTE: these are updated by the updateOdometry() method and used for simple movement commands
+    // (move, strafe, rotate).
+    private double xOdometryOdometryCounter, yOdometryCounter, headingOdometryCounter;
+    
+    // Current robot position (x,y, heading) in field coordinate system
+    // NOTE: this is updated by the updateOdometry() method and used for translation and/or rotation
+    // to field coordinates
+    private Pose2D currentFieldPosition;
 
-    private OpMode myOpMode = null;   // gain access to methods in the calling OpMode.
+    // gain access to methods in the calling OpMode.
+    private OpMode myOpMode = null; 
 
-    /* Constructor allows calling OpMode to pass a reference to itself. */
+    /**
+     * Constructor allows calling OpMode to pass a reference to itself. 
+     */
     public RobotHardware(OpMode opmode) {
         myOpMode = opmode;
     }
@@ -85,13 +156,13 @@ public class RobotHardware {
      */
     public void init()    {
 
-        /* Define Mecanum drivetrain hardware instance variables */
+        // Define Mecanum drivetrain hardware instance variables
         leftFrontDrive  = myOpMode.hardwareMap.get(DcMotorEx.class, "leftfront_drive");
         rightFrontDrive = myOpMode.hardwareMap.get(DcMotorEx.class, "rightfront_drive");
         leftBackDrive  = myOpMode.hardwareMap.get(DcMotorEx.class, "leftback_drive");
         rightBackDrive = myOpMode.hardwareMap.get(DcMotorEx.class, "rightback_drive");
 
-        /* Set the run mode, braking, and direction for each */
+        // Set the run mode, braking, and direction for each
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // increased accuracy and balance from controls
@@ -108,22 +179,23 @@ public class RobotHardware {
         rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        /* Make sure robot it not moving */
+        // Make sure robot it not moving
         // call stop methods, set power to zero, initialize encoders, etc.
 
-        /* Define odometry encoder hardware instance variables */
+        // Define odometry encoder hardware instance variables
         encoderRight = myOpMode.hardwareMap.get(DcMotor.class, "encoder_right");
         encoderLeft = myOpMode.hardwareMap.get(DcMotor.class, "encoder_left");
         encoderAux = myOpMode.hardwareMap.get(DcMotor.class, "encoder_aux");
 
-        /* Define IMU hardware instance variable */
+        // Define IMU hardware instance variable
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
 
-        /* Update telemetry */
+        // Update telemetry
         myOpMode.telemetry.addData(">", "Hardware Initialized");
     }
 
-    /* Motion for four-motor Mecanum drive train */
+    /***** Low level motion methods for four-motor Mecanum drive train *****/
+
     /**
     * Set Mecanum drivetrain motor powers
     */
@@ -137,12 +209,12 @@ public class RobotHardware {
     }
 
     /**
-     * Move robot according to robot-oriented axes motions
+     * Drive robot according to robot-oriented axes of motion
      * - Positive X is forward
      * - Positive Y is strafe left
      * - Positive Yaw is counter-clockwise
      */
-    public void move(double x, double y, double yaw, boolean sprint) {
+    public void move(double x, double y, double yaw, double speed) {
         // Calculate wheel powers.
         double leftFrontPower = x - y - yaw;
         double rightFrontPower = x + y + yaw;
@@ -159,81 +231,131 @@ public class RobotHardware {
             leftBackPower /= max;
             rightBackPower /= max;
         }
-        setMotorPowers(leftFrontPower, rightFrontPower, leftBackPower, rightBackPower);
+        
+        // adjust normalized powers by the speed factor and set motor powers
+        setMotorPowers(
+                leftFrontPower * speed,
+                rightFrontPower * speed,
+                leftBackPower * speed,
+                rightBackPower * speed
+        );
     }
 
+    /***** Methods for three-deadwheel odometry  *****/
+
+    /**
+     * Read odometry deadwheel encoders and update the current odometry counters and field position
+     * of the robot. This method should be called at the beginning of each loop in an autonomous
+     * opMode and in any subloops in translation or rotation routines.
+     */
     public void updateOdometry() {
 
-        /* save current encoder values */
-        int oldRightCounter = currentRightCounter;
-        int oldLeftCounter = currentLeftCounter;
-        int oldAuxCounter = currentAuxCounter;
+        // save current encoder values
+        int oldRightCounter = lastRightEncoderPosition;
+        int oldLeftCounter = lastLeftEncoderPosition;
+        int oldAuxOdometryCounter = lastAuxEncoderPosition;
 
-        /* read new encoder values */
-        currentRightCounter = encoderRight.getCurrentPosition(); // check sign based on installation
-        currentLeftCounter = encoderLeft.getCurrentPosition();
-        currentAuxCounter = encoderAux.getCurrentPosition();
+        // read new encoder values from odometry deadwheels
+        lastRightEncoderPosition = encoderRight.getCurrentPosition(); // check sign based on installation
+        lastLeftEncoderPosition = encoderLeft.getCurrentPosition();
+        lastAuxEncoderPosition = encoderAux.getCurrentPosition();
 
-        /* calculate deltas (robot perspective) since last measurement */
-        int dl = currentLeftCounter  - oldLeftCounter;
-        int dr= currentRightCounter - oldRightCounter;
-        int da = currentAuxCounter - oldAuxCounter;
-        double dtheta = DEADWHEEL_MM_PER_TICK * (dr-dl) / DEADWHEEL_TRACKWIDTH;
+        // calculate x, y, and theta (heading) deltas (robot perspective) since last measurement
+        int dl = lastLeftEncoderPosition  - oldLeftCounter;
+        int dr= lastRightEncoderPosition - oldRightCounter;
+        int da = lastAuxEncoderPosition - oldAuxOdometryCounter;
+        double dtheta = DEADWHEEL_MM_PER_TICK * (dr-dl) / DEADWHEEL_TRACKWIDTH; // should this be arctan?
         double dx = DEADWHEEL_MM_PER_TICK * (dl+dr) / 2.0;
         double dy = DEADWHEEL_MM_PER_TICK * (da - DEADWHEEL_FORWARD_OFFSET * (dr-dl) / DEADWHEEL_TRACKWIDTH);
 
-        /* update the current position in field coordinate system from the deltas */
-        double theta = currentPosition.getHeading(AngleUnit.RADIANS) + (dtheta / 2);
-        double newX = currentPosition.getX(DistanceUnit.MM) + dx * Math.cos(theta) - dy * Math.sin(theta);
-        double newY = currentPosition.getY(DistanceUnit.MM) + dx * Math.sin(theta) + dy * Math.cos(theta);
-        double newHeading = (currentPosition.getHeading(AngleUnit.RADIANS) + dtheta);
-        currentPosition = new Pose2D(DistanceUnit.MM, newX, newY, AngleUnit.RADIANS, newHeading);
+        // update the x, y, and heading odometry counters
+        xOdometryOdometryCounter += dx;
+        yOdometryCounter += dy;
+        headingOdometryCounter += dtheta;
+        
+        // update the current position in field coordinate system from the deltas
+        double theta = currentFieldPosition.getHeading(AngleUnit.RADIANS) + (dtheta / 2);
+        double newX = currentFieldPosition.getX(DistanceUnit.MM) + dx * Math.cos(theta) - dy * Math.sin(theta);
+        double newY = currentFieldPosition.getY(DistanceUnit.MM) + dx * Math.sin(theta) + dy * Math.cos(theta);
+        double newHeading = (currentFieldPosition.getHeading(AngleUnit.RADIANS) + dtheta);
+        currentFieldPosition = new Pose2D(DistanceUnit.MM, newX, newY, AngleUnit.RADIANS, newHeading);
     }
 
     /**
-     * Return current X position in MM
+     * Reset the x, y, and heading odometry counters to zero.
+     * This method should be called at the beginning of simple move and rotate commands to ensure
+     * that translation and rotation are relevant to robot's starting position
+     */
+    public void resetOdometryCounters() {
+        xOdometryOdometryCounter = 0.0;
+        yOdometryCounter = 0.0;
+        headingOdometryCounter = 0.0;
+    }
+
+    /**
+     * Set the robot's position in the field coordinate system.
+     * This method should be called to initialize the robot's current position from known starting
+     * position (e.g., from the field setup or from a known position on the field). This method may
+     * also be called when updating the robot's position from vision processing or other sensors.
+     */
+    public void setFieldPosition(double x, double y, double heading) {
+        currentFieldPosition = new Pose2D(DistanceUnit.MM, x, y, AngleUnit.RADIANS, heading);
+    }
+    public void setFieldPosition(double x, double y, DistanceUnit dUnit, double heading, AngleUnit aUnit) {
+        currentFieldPosition = new Pose2D(dUnit, x, y, aUnit, heading);
+    }
+
+    /**
+     * Return current field position
+     */
+    public Pose2D getCurrentFieldPosition() {
+        return currentFieldPosition;
+    }
+
+    /**
+     * Return X coordinate of current field position in MM units
      */
     public double getPosX() {
-        return currentPosition.getX(DistanceUnit.MM);
+        return currentFieldPosition.getX(DistanceUnit.MM);
     }
 
     /**
-     * Return current X position in specified units
+     * Return X coordinate of current field position in specified units
      */
     public double getPosX(DistanceUnit distanceUnit) {
-        return currentPosition.getX(distanceUnit);
+        return currentFieldPosition.getX(distanceUnit);
     }
 
     /**
-     * Return current Y position in field coordinate system in MM units
+     * Return Y coordinate of current field position in MM units
      */
     public double getPosY() {
-        return currentPosition.getY(DistanceUnit.MM);
+        return currentFieldPosition.getY(DistanceUnit.MM);
     }
 
     /**
-     * Return current Y position in field coordinate system in specified units
+     * Return Y coordinate of current field position in specified units
      */
     public double getPosY(DistanceUnit distanceUnit) {
-        return currentPosition.getY(distanceUnit);
+        return currentFieldPosition.getY(distanceUnit);
     }
 
     /**
-     * Return normalized current pose heading in field coordinate system. Best for performing higher level
+     * Return normalized heading of current field position. Best for performing higher level
      * calculations and control.
      */
     public double getHeading() {
-        return currentPosition.getHeading(AngleUnit.RADIANS) % (2.0 * Math.PI); // normalize to [0, 2pi);
+        return currentFieldPosition.getHeading(AngleUnit.RADIANS) % (2.0 * Math.PI); // normalize to [0, 2pi);
     }
 
     /**
-     * Return current heading in specified units as FTC "rotational convention" angle, i.e.,
-     * (-180, 180] degrees or (-Pi, Pi] radians from +X axis - positive counter-clockwise.
-     * Best for display in telemetry.
+     * Return heading of current field position in specified units as FTC "rotational convention"
+     * angle, i.e., (-180, 180] degrees or (-Pi, Pi] radians from +X axis - positive
+     * counter-clockwise. Best for display in telemetry.
      */
     public double getHeading(AngleUnit angleUnit) {
         if(angleUnit == AngleUnit.DEGREES) {
-            double theta = currentPosition.getHeading(AngleUnit.DEGREES);
+            double theta = currentFieldPosition.getHeading(AngleUnit.DEGREES);
             if (theta > 180) {
                 return -360 - theta;
             } else {
@@ -241,7 +363,7 @@ public class RobotHardware {
             }
         }
         else {
-            double theta = currentPosition.getHeading(AngleUnit.RADIANS);
+            double theta = currentFieldPosition.getHeading(AngleUnit.RADIANS);
             if (theta > Math.PI) {
                 return -2 * Math.PI - theta;
             } else {
@@ -250,21 +372,52 @@ public class RobotHardware {
         }
     }
 
+    /***** Mid-level motion methods for autonomous motion *****/
+
+    /**
+     * Drive forward (reverse) while maintaining current heading and limiting sideways drift
+     * @param distance Distance (MM) to move: + is forward, - is reverse
+     * @param speed Speed factor to apply (should use defined constants)
+     */
+    public void drive(double distance, double speed) {
+
+    }
+
+    /**
+     * Strafe left (right) while maintaining current heading and limiting forward/backward drift
+     * @param distance Distance (MM) to move: + is left, - is right
+     * @param speed Speed factor to apply (should use defined constants)
+     */
+    public void strafe(double distance, double speed) {
+
+    }
+
+    /**
+     * Turn a relative angle while maintaining current position
+     * @param angle Angle to rotate in Radians: + is counter-clockwise, - is clockwise
+     * @param speed Speed factor to apply (should use defined constants)
+     */
+    public void turn(double angle, double speed) {
+
+    }
+
+    /***** High-level movement methods for autonomous motion *****/
+
     /**
      * Move robot to specified field coordinate position (X, Y) in MM units
      * This method should be called from a LinerOpMode and implements its own
      * loop to cover the robots motion to the specified position.
      */
-    public void moveTo(double x, double y, double speed) {
+    public void moveToPosition(double x, double y, double speed) {
 
-        /* tracking variables for PID controller(s) */
-        double integralSumX = 0.0;
-        double integralSumY = 0.0;
-        double lastErrorX = 0.0;
-        double lastErrorY = 0.0;
+        /*
+         * the x and y are in field coordinate system, so the first step is to convert them to
+         * robot-oriented coordinates based on the current filed position and heading of the robot.
+         */
 
-        /* timer for time for move */
-        ElapsedTime timer = new ElapsedTime();
+        // Proportional controllers for X and Y power
+        ProportionalController xController = new ProportionalController(PID_CONTROLLER_X_KP, x);
+        ProportionalController yController = new ProportionalController(PID_CONTROLLER_Y_KP, y);
 
         /* loop until position is obtained or opMode is stopped */
         while(((LinearOpMode)myOpMode).opModeIsActive()) {
@@ -273,36 +426,23 @@ public class RobotHardware {
             updateOdometry();
 
             /* check if we are close enough to the target */
-            if (Math.abs(x - getPosX()) < PID_POSITION_TOLERANCE && Math.abs(y - getPosY()) < PID_POSITION_TOLERANCE) {
+            if (Math.abs(x - getPosX()) < MOVE_POSITION_TOLERANCE && Math.abs(y - getPosY()) < MOVE_POSITION_TOLERANCE) {
                 break;
             }
 
-            /* calculate deltas of current position from target coordinates */
+            /* calculate s */
             double dx = x - getPosX();
-            double dy = y - getPosX();
+            double dy = y - getPosY();
 
             /* convert deltas to robot-oriented X and Y errors for PID controller calculations */
             double h = getHeading();
             double errorX = dx * Math.cos(h) + dy * Math.sin(h);
             double errorY = -dx * Math.sin(h) + dy * Math.cos(h);
 
-            /* use PID controller(s) to calculate robot-oriented X and Y components of motion */
-            double derivativeX = (errorX - lastErrorX) / timer.seconds(); // rate of change of the error for X
-            double derivativeY = (errorY - lastErrorY) / timer.seconds(); // rate of change of the error for Y
-            integralSumX += errorX * timer.seconds(); // sum of all error over time for X
-            integralSumY += errorY * timer.seconds(); // sum of all error over time for Y
-            double powerX = PID_CONTROLLER_X_KP * errorX + PID_CONTROLLER_X_KI * integralSumX + PID_CONTROLLER_X_KD * derivativeX;
-            double powerY = PID_CONTROLLER_Y_KP * errorY + PID_CONTROLLER_Y_KI * integralSumY + PID_CONTROLLER_Y_KD * derivativeY;
 
             /* set motor power through move method */
-            move(powerX, powerY, 0.0, false); // no yaw
+            //move(powerX, powerY, 0.0, false); // no yaw
 
-            /* update last error values */
-            lastErrorX = errorX;
-            lastErrorY = errorY;
-
-            /* reset timer for next iteration */
-            timer.reset();
 
             /* provide some time for motors to run */
             //((LinearOpMode) myOpMode).idle(); - not needed because opModeIsActve() will do this
@@ -330,7 +470,7 @@ public class RobotHardware {
             updateOdometry();
 
             /* check if we are close enough to the target */
-            if (Math.abs(heading - getHeading()) < PID_HEADING_TOLERANCE) {
+            if (Math.abs(heading - getHeading()) < ROTATE_HEADING_TOLERANCE) {
                 break;
             }
 
@@ -343,7 +483,7 @@ public class RobotHardware {
             double power = PID_CONTROLLER_HEADING_KP * error + PID_CONTROLLER_HEADING_KI * integralSum + PID_CONTROLLER_HEADING_KD * derivative;
 
             /* set motor power through move method */
-            move(0.0, 0.0, power, false); // no x or y motion
+            move(0.0, 0.0, power, speed); // no x or y motion
 
             /* update last error values */
             lastError = error;
@@ -353,21 +493,82 @@ public class RobotHardware {
         }
     }
 
-    /**
-     * Move a relative distance from current position in robot-oriented coordinates
-     * This method should be called from a LinerOpMode and implements its own
-     * loop to cover the robots motion to the specified position.
-     */
-    public void moveRelative(double x, double y, double speed) {
+}
 
+/***** Controller classes for controlling motor power in mid and high level motion functions *****/
+/**
+ * Proportional Controller class for computing motor power during autonomous motion
+ */
+class ProportionalController {
+
+        // Proportional Gain
+        private double Kp;
+
+        // Desired position
+        private double desiredPosition;
+
+        // Constructor to set the gain and desired position
+        public ProportionalController(double Kp, double desiredPosition) {
+            this.Kp = Kp;
+            this.desiredPosition = desiredPosition;
+        }
+
+        // Method to calculate the control output based on the current position
+        public double calculate(double currentFieldPosition) {
+            // Calculate the error
+            double error = desiredPosition - currentFieldPosition;
+
+            // Calculate the control output (proportional control)
+            return Kp * error;
+
+        }
+}
+
+/**
+ * PID Controller class for computing motor power during autonomous motion
+ */
+class PIDController {
+
+    // gains
+    private double Kp;
+    private double Ki;
+    private double Kd;
+
+    // Desired position
+    private double desiredPosition;
+
+    // tracking values
+    private double integralSum = 0.0;
+    private double lastError = 0.0;
+    private int lastTime = 0;
+
+    // Constructor to set the gains and desired position
+    public PIDController(double Kp, double Ki,double Kd,double desiredPosition) {
+        this.Kp = Kp;
+        this.Ki = Ki;
+        this.Kd = Kd;
+        this.desiredPosition = desiredPosition;
     }
 
-    /**
-     * Rotate a relative angle from current heading in robot-oriented coordinates
-     * This method should be called from a LinerOpMode and implements its own
-     * loop to cover the robots motion to the specified heading.
-     */
-    public void rotateRelative(double heading, double speed) {
+    // Method to calculate the control output based on the current position
+    public double calculate(double currentFieldPosition) {
 
+        // Calculate the error
+        double error = desiredPosition - currentFieldPosition;
+
+        // Get elapsed time (secs) since last calculation
+        int currentTime = (int) System.currentTimeMillis() / 1000;
+        int deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+
+        // Update the integral sum
+        integralSum += error * deltaTime;
+
+        // Calculate the derivative and integral terms
+        double derivative = (error - lastError) / deltaTime; // rate of change of the error
+        lastError = error;
+
+        // Calculate the control output (proportional control)
+        return Kp * error + Ki * integralSum + Kd * derivative;
     }
 }
