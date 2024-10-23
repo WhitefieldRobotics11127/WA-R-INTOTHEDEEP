@@ -48,13 +48,9 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
  */
 public class RobotHardware {
 
-    /*
-     * Define constant values for interfacing with hardware devices (public so they CAN be used
-     * by the calling OpMode - just in case).
-     */
+    /* ----- Public constants (so they CAN be used the calling OpMode - just in case) ----- */
 
-    /*
-     * Constants for drivetrain
+    /* Parameter values for drivetrain motors.
      * Even though all robots will likely use four-motor Mecanum (Omni) drivetrains, these constants
      * may have to be modified each year based on the robots mechanical configuration, weight, and
      * performance
@@ -74,36 +70,33 @@ public class RobotHardware {
     public static final double OMNI_CORRECTION_LEFT_BACK = 1.0; // Correction factor for left back motor
     public static final double OMNI_CORRECTION_RIGHT_BACK = 1.0; // Correction factor for right back motor
 
-    /*
-     * Odometry constants - these are used in the calculation of the current position (relative
-     * movement and field coordinates). The values are initially set from physical measurements of
-     * the robot but should be tweaked for accuracy from testing (e.g., spin test and/or
-     * strafe/curve testing).
+    /* Parameter values for Odometry calulations.
+     * These are used in the calculation of the current position (relative movement and field
+     * coordinates). The values are initially set from physical measurements of the robot but should
+     * be tweaked for accuracy from testing (e.g., spin test and/or strafe/curve testing).
      */
     public static final double DEADWHEEL_MM_PER_TICK = 0.0754; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
     public static final double DEADWHEEL_FORWARD_OFFSET = 138.55; //forward offset (length B) of aux deadwheel from robot center of rotation in MM
     public static final double DEADWHEEL_TRACKWIDTH = 332.51; // distance (length L) between left and right deadwheels in MM
 
-    /*
-     * Arm (Viper-Slide) constants
-     ****** Put any parameter values here, e.g. max and min positions for extension, etc. ******
+    /* Parameter values for arm (Viper-Slide).
+     * Put any parameter values here, e.g. max and min positions for extension, etc.
      */
 
-    /*
-     * Claw constants
-     ****** Put any parameter values here, e.g. servo position for open and close, etc. ******
+    /* Parameter values for claw
+     * Put any parameter values here, e.g. servo position for open and close, etc. ******
      */
 
-    /*
-     * Constants for autonomous motion routines
+    /* Constants for autonomous motion routines.
+     * These may require a lot of tweaking.
      */
 
-    // Tolerance values for moveTo() and rotateTo() operations
+    // Tolerance values for closed-loop controllers for use in translate and rotate commands
     public static final double MOVE_POSITION_TOLERANCE = 10.0; // Tolerance for position in MM
     public static final double ROTATE_HEADING_TOLERANCE = 0.0174533; // Tolerance for heading in radians (1 degree)
 
-    // PID Controller gain values for each of the three control loops (X, Y, and heading)
-    public static final double PID_CONTROLLER_X_KP = 0.1; // Proportional gain for X position
+    // PID gain values for each of the three closed-loop controllers (X, Y, and heading)
+    public static final double PID_CONTROLLER_X_KP = 0.16; // Proportional gain for X position
     public static final double PID_CONTROLLER_X_KI = 0.0; // Integral gain for X position
     public static final double PID_CONTROLLER_X_KD = 0.0; // Derivative gain for X position
     public static final double PID_CONTROLLER_Y_KP = 0.1; // Tolerance for Y position
@@ -113,18 +106,18 @@ public class RobotHardware {
     public static final double PID_CONTROLLER_HEADING_KI = 0.0; // Integral gain for heading
     public static final double PID_CONTROLLER_HEADING_KD = 0.0; // Derivative gain for heading
     
-    /*
-     * Member variables (private to hide from the calling opmode)
-     */
+    /* ----- Member variables (private to hide from the calling opmode) ----- */
 
     /*
-     * Hardware objects for current robot hardware
+     * Hardware objects for current robot hardware.
+     * Any functionality or properties of any of these objects needed by opmodes will need to be
+     * exposed through methods added to this class (thus the "abstraction" layer).
      */
     private DcMotorEx leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive;  //  Motors for Mecanum drive
     private DcMotor encoderRight, encoderLeft, encoderAux; // Encoders (deadwheels) for odometry
     private IMU imu; // IMU built into Rev Control Hub
 
-    //private DcMotor armRotation, armExtensions; // Motors for Viper-Slide arm extension and rotation
+    //private DcMotor armRotation, armExtension; // Motors for Viper-Slide arm extension and rotation
     //private Servo clawServo; // Servo for claw open/close
 
     private VisionPortal visionPortal; // Used to manage the video source.
@@ -139,7 +132,7 @@ public class RobotHardware {
 
     // translated x, y, and heading odometry counters in mm since last reset
     // NOTE: these are updated by the updateOdometry() method and used for simple movement commands
-    // (move, strafe, rotate).
+    // (drive, strafe, rotate).
     private double xOdometryOdometryCounter, yOdometryCounter, headingOdometryCounter;
     
     // Current robot position (x,y, heading) in field coordinate system
@@ -147,11 +140,13 @@ public class RobotHardware {
     // to field coordinates
     private Pose2D currentFieldPosition;
 
-    // gain access to methods in the calling OpMode.
+    // keep a reference to the calling opmode so that we have access to hardwareMap and other
+    // properties and statuses from the running opmode.
     private OpMode myOpMode = null; 
 
     /**
-     * Constructor allows calling OpMode to pass a reference to itself. 
+     * Constructor allows calling OpMode to pass a reference to itself.
+     * @param opmode the OpMode that is creating this RobotHardware instance
      */
     public RobotHardware(OpMode opmode) {
         myOpMode = opmode;
@@ -169,25 +164,35 @@ public class RobotHardware {
         leftBackDrive  = myOpMode.hardwareMap.get(DcMotorEx.class, "leftback_drive");
         rightBackDrive = myOpMode.hardwareMap.get(DcMotorEx.class, "rightback_drive");
 
-        // Set the run mode, braking, and direction for each
+        // Set the run mode, braking, and direction for each motor, make sure robot it not moving
+        // (power to zero and/or stop commands), and initialize encoders, etc.
+        // NOTE: There may be order and/or timing issues here, e.g., setting the runmode to
+        // RUN_USING_ENCODER may need to happen after setting the runmode to STOP_AND_RESET_ENCODER,
+        // and after a short sleep by the opmode (e.g., 100ms) to allow the encoders to reset.
+        leftFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // increased accuracy and balance from controls
 
+        leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        rightFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        rightBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        // Make sure robot it not moving
-        // call stop methods, set power to zero, initialize encoders, etc.
+        // What do we need here to ensure that the encoders are reset before we set the run mode to
+        // RUN_USING_ENCODER? A Thread.sleep() call, a myOpMode.wait() call, a myOpMode.idle() call
+        // (only for Linear opmodes), etc.?
+
+        leftFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // increased accuracy and balance from controls
+        leftBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Define odometry encoder hardware instance variables
         encoderRight = myOpMode.hardwareMap.get(DcMotor.class, "encoder_right");
@@ -197,11 +202,14 @@ public class RobotHardware {
         // Define IMU hardware instance variable
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
 
-        // Update telemetry
-        myOpMode.telemetry.addData(">", "Hardware Initialized");
+        // Define arm and claw hardware instance variables
+        //armRotation = myOpMode.hardwareMap.get(DcMotor.class, "arm_rotation");
+        //armExtensions = myOpMode.hardwareMap.get(DcMotor.class, "arm_extension");
+        //clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
+
     }
 
-    /***** Low level motion methods for four-motor Mecanum drive train *****/
+    /* ----- Low level motion methods for four-motor Mecanum drive train ----- */
 
     /**
     * Set Mecanum drivetrain motor powers
@@ -209,6 +217,15 @@ public class RobotHardware {
     public void setMotorPowers(double leftFrontPower, double rightFrontPower, double leftBackPower, double rightBackPower) {
 
         // Send powers to the wheels.
+        // NOTE: since we are using encoders on all wheels, what we are really doing here is
+        // specifying a percentage (0.0 to 1.0) of the maximum RPM speed of the motor. Similar to
+        // calling setSpeed() but without having to know the speed ranges and values. The motor
+        // controller code (DCMotor or DCMotorEx classes) can then take care of changing voltage
+        // levels from the battery and variations in friction in the motors for weight distribution
+        // of the robot to provide more balanced speed control to the four wheels. The actual speed
+        // of the motor is managed by the DCMotor (or DCMotorEx) class utilizing a built-in PID
+        // controller to attain the calculated RPM. We may want to adjust the PID controller gain
+        // values via methods in the DCMotorEx class to obtain stable operation.
         leftFrontDrive.setPower(leftFrontPower);
         rightFrontDrive.setPower(rightFrontPower);
         leftBackDrive.setPower(leftBackPower);
@@ -217,18 +234,24 @@ public class RobotHardware {
 
     /**
      * Drive robot according to robot-oriented axes of motion
-     * - Positive X is forward
-     * - Positive Y is strafe left
-     * - Positive Yaw is counter-clockwise
+     * This method can be used by telop opmodes directly to drive the robot, since the human on
+     * the gamepad will be viewing and controlling the robot on the field with subtle adjustments
+     * (thus "closed-loop" controller), as well as by the higher-level motion routines for
+     * autonomous driving.
+     * @param x "power" (relative speed) for axial movement (+ is forward)
+     * @param y power for lateral movement (strafe) (+ is left)
+     * @param yaw power for rotation (+ is counter-clockwise)
      */
     public void move(double x, double y, double yaw, double speed) {
-        // Calculate wheel powers.
+        // Calculate the powers for the four motors attached to the mecanum wheels based on the
+        // specified x, y, yaw powers.
         double leftFrontPower = x - y - yaw;
         double rightFrontPower = x + y + yaw;
         double leftBackPower = x + y - yaw;
         double rightBackPower = x - y + yaw;
 
-        // Normalize wheel powers to be less than 1.0
+        // Normalize wheel powers to be less than 1.0 but retain the balance between the four
+        // wheels calculated above.
         double max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
         max = Math.max(max, Math.abs(leftBackPower));
         max = Math.max(max, Math.abs(rightBackPower));
@@ -248,12 +271,13 @@ public class RobotHardware {
         );
     }
 
-    /***** Methods for three-deadwheel odometry  *****/
+    /* ----- Methods for three-wheel odometry ----- */
 
     /**
-     * Read odometry deadwheel encoders and update the current odometry counters and field position
-     * of the robot. This method should be called at the beginning of each loop in an autonomous
-     * opMode and in any subloops in translation or rotation routines.
+     * Read odometry wheel encoders and update the current odometry counters and field position
+     * of the robot.
+     * This method should be called at the beginning of each loop in an autonomous opMode and in any
+     * subloops in translation or rotation routines.
      */
     public void updateOdometry() {
 
@@ -300,21 +324,31 @@ public class RobotHardware {
     }
 
     /**
-     * Set the robot's position in the field coordinate system.
-     * This method should be called to initialize the robot's current position from known starting
+     * Set the robot's position in the field coordinate system in MM and radians.
+     * This method should be called to initialize the robot's initial position from known starting
      * position (e.g., from the field setup or from a known position on the field). This method may
      * also be called when updating the robot's position from vision processing or other sensors.
+     * @param x x-coordinate of center of robot in field coordinates
+     * @param y y-coordinate of center of robot in field coordinates
+     * @param heading current angle of robot relative to positive x-axis in field coordinates
      */
     public void setFieldPosition(double x, double y, double heading) {
         currentFieldPosition = new Pose2D(DistanceUnit.MM, x, y, AngleUnit.RADIANS, heading);
     }
 
+    /**
+     * Set the robot's position in the field coordinate system in specified distance and angle
+     * units.
+     * @param x x-coordinate of center of robot in field coordinates
+     * @param y y-coordinate of center of robot in field coordinates
+     * @param heading current angle of robot relative to positive x-axis in field coordinates
+     */
     public void setFieldPosition(double x, double y, DistanceUnit dUnit, double heading, AngleUnit aUnit) {
         currentFieldPosition = new Pose2D(dUnit, x, y, aUnit, heading);
     }
 
     /**
-     * Return current field position
+     * Return current field position as a Pose2D object
      */
     public Pose2D getCurrentFieldPosition() {
         return currentFieldPosition;
@@ -380,7 +414,7 @@ public class RobotHardware {
         }
     }
 
-    /***** Mid-level motion methods for autonomous motion *****/
+    /* ----- Mid-level motion methods for autonomous motion ----- */
 
     /**
      * Drive forward (reverse) while maintaining current heading and limiting sideways drift
@@ -409,7 +443,7 @@ public class RobotHardware {
 
     }
 
-    /***** High-level movement methods for autonomous motion *****/
+    /* ----- High-level movement methods for autonomous motion ----- */
 
     /**
      * Move robot to specified field coordinate position (X, Y) in MM units
@@ -491,7 +525,7 @@ public class RobotHardware {
             double power = PID_CONTROLLER_HEADING_KP * error + PID_CONTROLLER_HEADING_KI * integralSum + PID_CONTROLLER_HEADING_KD * derivative;
 
             /* set motor power through move method */
-            move(0.0, 0.0, power, speed); // no x or y motion
+            //move(0.0, 0.0, power, speed); // no x or y motion
 
             /* update last error values */
             lastError = error;
@@ -503,7 +537,7 @@ public class RobotHardware {
 
 }
 
-/***** Controller classes for controlling motor power in mid and high level motion functions *****/
+/* ----- Closed-loop controller classes for use by mid and high level motion functions ----- */
 /**
  * Proportional Controller class for computing motor power during autonomous motion
  */
@@ -523,6 +557,7 @@ class ProportionalController {
 
         // Method to calculate the control output based on the current position
         public double calculate(double currentFieldPosition) {
+
             // Calculate the error
             double error = desiredPosition - currentFieldPosition;
 
