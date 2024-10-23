@@ -34,6 +34,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -85,12 +86,16 @@ public class RobotHardware {
 
     /*
      * Arm (Viper-Slide) constants
-     ****** STILL UNDER DEVELOPMENT ******
+     ****** Put any parameter values here, e.g. max and min positions for extension, etc. ******
+     */
+
+    /*
+     * Claw constants
+     ****** Put any parameter values here, e.g. servo position for open and close, etc. ******
      */
 
     /*
      * Constants for autonomous motion routines
-     ****** STILL UNDER DEVELOPMENT ******
      */
 
     // Tolerance values for moveTo() and rotateTo() operations
@@ -107,7 +112,6 @@ public class RobotHardware {
     public static final double PID_CONTROLLER_HEADING_KP = 0.1; // Proportional gain for heading
     public static final double PID_CONTROLLER_HEADING_KI = 0.0; // Integral gain for heading
     public static final double PID_CONTROLLER_HEADING_KD = 0.0; // Derivative gain for heading
-
     
     /*
      * Member variables (private to hide from the calling opmode)
@@ -119,9 +123,12 @@ public class RobotHardware {
     private DcMotorEx leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive;  //  Motors for Mecanum drive
     private DcMotor encoderRight, encoderLeft, encoderAux; // Encoders (deadwheels) for odometry
     private IMU imu; // IMU built into Rev Control Hub
-    
+
+    //private DcMotor armRotation, armExtensions; // Motors for Viper-Slide arm extension and rotation
+    //private Servo clawServo; // Servo for claw open/close
+
     private VisionPortal visionPortal; // Used to manage the video source.
-    private AprilTagProcessor aprilTag; // Used for managing the AprilTag detection processor 
+    private AprilTagProcessor aprilTag; // Used for managing the AprilTag detection processor
 
     /*
      * Variables for tracking robot state     
@@ -301,6 +308,7 @@ public class RobotHardware {
     public void setFieldPosition(double x, double y, double heading) {
         currentFieldPosition = new Pose2D(DistanceUnit.MM, x, y, AngleUnit.RADIANS, heading);
     }
+
     public void setFieldPosition(double x, double y, DistanceUnit dUnit, double heading, AngleUnit aUnit) {
         currentFieldPosition = new Pose2D(dUnit, x, y, aUnit, heading);
     }
