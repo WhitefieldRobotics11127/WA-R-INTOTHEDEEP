@@ -113,11 +113,18 @@ public class RobotHardware {
      * Any functionality or properties of any of these objects needed by opmodes will need to be
      * exposed through methods added to this class (thus the "abstraction" layer).
      */
+    // NOTE: We should use the DCMotorEx class for all motors connected to a REV Control Hub or
+    // REV Expansion whether or not  we are using RUN_USING_ENCODERS or other extended functionality
+    // because the built-in REV motor controllers support all the functionality of the DCMotorEx
+    // class
     private DcMotorEx leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive;  //  Motors for Mecanum drive
-    private DcMotor encoderRight, encoderLeft, encoderAux; // Encoders (deadwheels) for odometry
+    private DcMotorEx encoderRight, encoderLeft, encoderAux; // Encoders (deadwheels) for odometry
     private IMU imu; // IMU built into Rev Control Hub
 
-    //private DcMotor armRotation, armExtension; // Motors for Viper-Slide arm extension and rotation
+    // NOTE: Some of these objects may be pointed to the same motor/encoder ports as the
+    // deadwheel encoders used for odometry. Any motor that shares a port with a deadwheel
+    // encoder should be set to RUN_WITHOUT_ENCODER mode
+    //private DcMotorEx armRotation, armExtension; // Motors for Viper-Slide arm extension and rotation
     //private Servo clawServo; // Servo for claw open/close
 
     private VisionPortal visionPortal; // Used to manage the video source.
@@ -133,7 +140,7 @@ public class RobotHardware {
     // translated x, y, and heading odometry counters in mm since last reset
     // NOTE: these are updated by the updateOdometry() method and used for simple movement commands
     // (drive, strafe, rotate).
-    private double xOdometryOdometryCounter, yOdometryCounter, headingOdometryCounter;
+    private double xOdometryCounter, yOdometryCounter, headingOdometryCounter;
     
     // Current robot position (x,y, heading) in field coordinate system
     // NOTE: this is updated by the updateOdometry() method and used for translation and/or rotation
@@ -169,42 +176,47 @@ public class RobotHardware {
         // NOTE: There may be order and/or timing issues here, e.g., setting the runmode to
         // RUN_USING_ENCODER may need to happen after setting the runmode to STOP_AND_RESET_ENCODER,
         // and after a short sleep by the opmode (e.g., 100ms) to allow the encoders to reset.
-        leftFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftFrontDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        leftFrontDrive.setDirection(DcMotorEx.Direction.REVERSE);
+        leftFrontDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
-        leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBackDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        leftBackDrive.setDirection(DcMotorEx.Direction.REVERSE);
+        leftBackDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        rightFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFrontDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        rightFrontDrive.setDirection(DcMotorEx.Direction.FORWARD);
+        rightFrontDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        rightBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBackDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        rightBackDrive.setDirection(DcMotorEx.Direction.FORWARD);
+        rightBackDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
         // What do we need here to ensure that the encoders are reset before we set the run mode to
         // RUN_USING_ENCODER? A Thread.sleep() call, a myOpMode.wait() call, a myOpMode.idle() call
         // (only for Linear opmodes), etc.?
 
-        leftFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // increased accuracy and balance from controls
-        leftBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftFrontDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER); // increased accuracy and balance from controls
+        leftBackDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        rightFrontDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        rightBackDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         // Define odometry encoder hardware instance variables
-        encoderRight = myOpMode.hardwareMap.get(DcMotor.class, "encoder_right");
-        encoderLeft = myOpMode.hardwareMap.get(DcMotor.class, "encoder_left");
-        encoderAux = myOpMode.hardwareMap.get(DcMotor.class, "encoder_aux");
+        encoderRight = myOpMode.hardwareMap.get(DcMotorEx.class, "encoder_right");
+        encoderLeft = myOpMode.hardwareMap.get(DcMotorEx.class, "encoder_left");
+        encoderAux = myOpMode.hardwareMap.get(DcMotorEx.class, "encoder_aux");
+
+        // Reset the encoder values
+        encoderRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        encoderLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        encoderAux.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
         // Define IMU hardware instance variable
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
 
         // Define arm and claw hardware instance variables
-        //armRotation = myOpMode.hardwareMap.get(DcMotor.class, "arm_rotation");
-        //armExtensions = myOpMode.hardwareMap.get(DcMotor.class, "arm_extension");
+        //armRotation = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_rotation");
+        //armExtensions = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_extension");
         //clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
 
     }
@@ -216,20 +228,20 @@ public class RobotHardware {
     */
     public void setMotorPowers(double leftFrontPower, double rightFrontPower, double leftBackPower, double rightBackPower) {
 
-        // Send powers to the wheels.
+        // Send powers to the wheels and apply corrections.
         // NOTE: since we are using encoders on all wheels, what we are really doing here is
-        // specifying a percentage (0.0 to 1.0) of the maximum RPM speed of the motor. Similar to
-        // calling setSpeed() but without having to know the speed ranges and values. The motor
-        // controller code (DCMotor or DCMotorEx classes) can then take care of changing voltage
-        // levels from the battery and variations in friction in the motors for weight distribution
-        // of the robot to provide more balanced speed control to the four wheels. The actual speed
-        // of the motor is managed by the DCMotor (or DCMotorEx) class utilizing a built-in PID
-        // controller to attain the calculated RPM. We may want to adjust the PID controller gain
-        // values via methods in the DCMotorEx class to obtain stable operation.
-        leftFrontDrive.setPower(leftFrontPower);
-        rightFrontDrive.setPower(rightFrontPower);
-        leftBackDrive.setPower(leftBackPower);
-        rightBackDrive.setPower(rightBackPower);
+        // specifying a ratio (0.0 to 1.0) of the maximum RPM speed of the motor. Similar to
+        // calling setVelocity() but without having to know the RPM ranges and values. The motor
+        // controller code (DcMotorEx class) can then take care of changing voltage levels from the
+        // battery and variations in friction in the motors for weight distribution of the robot to
+        // provide more balanced speed control to the four wheels. The actual speed of the motor is
+        // managed by the DcMotorEx class utilizing a built-in PID controller to attain the
+        // calculated RPM. We may want to adjust the PID controller gain values via methods in the
+        // DcMotorEx class to obtain stable operation.
+        leftFrontDrive.setPower(leftFrontPower * OMNI_CORRECTION_LEFT_FRONT);
+        rightFrontDrive.setPower(rightFrontPower* OMNI_CORRECTION_RIGHT_FRONT);
+        leftBackDrive.setPower(leftBackPower * OMNI_CORRECTION_LEFT_BACK);
+        rightBackDrive.setPower(rightBackPower * OMNI_CORRECTION_RIGHT_BACK);
     }
 
     /**
@@ -300,7 +312,7 @@ public class RobotHardware {
         double dy = DEADWHEEL_MM_PER_TICK * (da - DEADWHEEL_FORWARD_OFFSET * (dr-dl) / DEADWHEEL_TRACKWIDTH);
 
         // update the x, y, and heading odometry counters
-        xOdometryOdometryCounter += dx;
+        xOdometryCounter += dx;
         yOdometryCounter += dy;
         headingOdometryCounter += dtheta;
         
@@ -318,9 +330,38 @@ public class RobotHardware {
      * that translation and rotation are relevant to robot's starting position
      */
     public void resetOdometryCounters() {
-        xOdometryOdometryCounter = 0.0;
+        xOdometryCounter = 0.0;
         yOdometryCounter = 0.0;
         headingOdometryCounter = 0.0;
+    }
+
+    /**
+     * Return axial (x) odometry counter in MM units. This method is primarily for retrieveal of the
+     * odometry counters by the opmode for display in telemetry during testing.
+     */
+    public double getOdometryX() {
+        return xOdometryCounter;
+    }
+
+    /**
+     * Return lateral (y) odometry counter in MM units. This method is primarily for retrieveal of
+     * the odometry counters by the opmode for display in telemetry during testing.
+     */
+    public double getOdometryY() {
+        return yOdometryCounter;
+    }
+
+    /**
+     * Return heading odometry counter in degrees. This method is primarily for retrieveal of the
+     * odometry counters by the opmode for display in telemetry during testing.
+     */
+    public double getOdometryHeading() {
+        double theta = headingOdometryCounter / (2 * Math.PI) * 360;
+        if (theta > 180) {
+            return -360 - theta;
+        } else {
+            return theta;
+        }
     }
 
     /**
