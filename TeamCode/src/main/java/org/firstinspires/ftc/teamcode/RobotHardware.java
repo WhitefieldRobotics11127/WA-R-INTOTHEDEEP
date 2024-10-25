@@ -40,8 +40,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
-import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+//import org.firstinspires.ftc.vision.VisionPortal;
+//import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 /**
  * Hardware abstraction class for WA Robotics INTO THE DEEP competition robot
@@ -127,8 +127,8 @@ public class RobotHardware {
     //private DcMotorEx armRotation, armExtension; // Motors for Viper-Slide arm extension and rotation
     //private Servo clawServo; // Servo for claw open/close
 
-    private VisionPortal visionPortal; // Used to manage the video source.
-    private AprilTagProcessor aprilTag; // Used for managing the AprilTag detection processor
+    //private VisionPortal visionPortal; // Used to manage the video source.
+    //private AprilTagProcessor aprilTag; // Used for managing the AprilTag detection processor
 
     /*
      * Variables for tracking robot state     
