@@ -78,8 +78,8 @@ public class RobotHardware {
     public static final int DEADWHEEL_RIGHT_DIRECTION = -1; // Allows for adjustment of + direction of right encoder - should be installed front to back
     public static final int DEADWHEEL_AUX_DIRECTION = 1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
     public static final double DEADWHEEL_MM_PER_TICK = 0.0754; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
-    public static final double DEADWHEEL_FORWARD_OFFSET = 138.55; //forward offset (length B) of aux deadwheel from robot center of rotation in MM
-    public static final double DEADWHEEL_TRACKWIDTH = 332.51; // distance (length L) between left and right deadwheels in MM
+    public static final double DEADWHEEL_FORWARD_OFFSET = 106.0; //forward offset (length B) of aux deadwheel from robot center of rotation in MM
+    public static final double DEADWHEEL_TRACKWIDTH = 305.0; // distance (length L) between left and right deadwheels in MM
 
     /* Parameter values for arm (Viper-Slide).
      * Put any parameter values here, e.g. max and min positions for extension, etc.
