@@ -31,7 +31,6 @@ package org.firstinspires.ftc.teamcode;
  */
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -70,11 +69,14 @@ public class RobotHardware {
     public static final double OMNI_CORRECTION_LEFT_BACK = 1.0; // Correction factor for left back motor
     public static final double OMNI_CORRECTION_RIGHT_BACK = 1.0; // Correction factor for right back motor
 
-    /* Parameter values for Odometry calulations.
+    /* Parameter values for odometry calculations.
      * These are used in the calculation of the current position (relative movement and field
      * coordinates). The values are initially set from physical measurements of the robot but should
      * be tweaked for accuracy from testing (e.g., spin test and/or strafe/curve testing).
      */
+    public static final int DEADWHEEL_LEFT_DIRECTION = 1; // Allows for adjustment of + direction of left encoder - should be installed front to back
+    public static final int DEADWHEEL_RIGHT_DIRECTION = -1; // Allows for adjustment of + direction of right encoder - should be installed front to back
+    public static final int DEADWHEEL_AUX_DIRECTION = 1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
     public static final double DEADWHEEL_MM_PER_TICK = 0.0754; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
     public static final double DEADWHEEL_FORWARD_OFFSET = 138.55; //forward offset (length B) of aux deadwheel from robot center of rotation in MM
     public static final double DEADWHEEL_TRACKWIDTH = 332.51; // distance (length L) between left and right deadwheels in MM
@@ -102,9 +104,9 @@ public class RobotHardware {
     public static final double PID_CONTROLLER_Y_KP = 0.1; // Tolerance for Y position
     public static final double PID_CONTROLLER_Y_KI = 0.0; // Integral gain for Y position
     public static final double PID_CONTROLLER_Y_KD = 0.0; // Derivative gain for Y position
-    public static final double PID_CONTROLLER_HEADING_KP = 0.1; // Proportional gain for heading
-    public static final double PID_CONTROLLER_HEADING_KI = 0.0; // Integral gain for heading
-    public static final double PID_CONTROLLER_HEADING_KD = 0.0; // Derivative gain for heading
+    public static final double PID_CONTROLLER_YAW_KP = 0.1; // Proportional gain for heading
+    public static final double PID_CONTROLLER_YAW_KI = 0.0; // Integral gain for heading
+    public static final double PID_CONTROLLER_YAW_KD = 0.0; // Derivative gain for heading
     
     /* ----- Member variables (private to hide from the calling opmode) ----- */
 
@@ -113,17 +115,21 @@ public class RobotHardware {
      * Any functionality or properties of any of these objects needed by opmodes will need to be
      * exposed through methods added to this class (thus the "abstraction" layer).
      */
-    // NOTE: We should use the DCMotorEx class for all motors connected to a REV Control Hub or
-    // REV Expansion whether or not  we are using RUN_USING_ENCODERS or other extended functionality
-    // because the built-in REV motor controllers support all the functionality of the DCMotorEx
-    // class
+    /*
+     * NOTE: We should use the DCMotorEx class for all motors connected to a REV Control Hub or
+     * REV Expansion whether or not  we are using RUN_USING_ENCODERS or other extended functionality
+     * because the built-in REV motor controllers support all the functionality of the DCMotorEx
+     * class.
+     */
     private DcMotorEx leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive;  //  Motors for Mecanum drive
     private DcMotorEx encoderRight, encoderLeft, encoderAux; // Encoders (deadwheels) for odometry
     private IMU imu; // IMU built into Rev Control Hub
 
-    // NOTE: Some of these objects may be pointed to the same motor/encoder ports as the
-    // deadwheel encoders used for odometry. Any motor that shares a port with a deadwheel
-    // encoder should be set to RUN_WITHOUT_ENCODER mode
+    /*
+     * NOTE: Some of these objects may be pointed to the same motor/encoder ports as the deadwheel
+     * encoders used for odometry. Any motor that shares a port with a deadwheel encoder should be
+     * set to RUN_WITHOUT_ENCODER mode
+     */
     //private DcMotorEx armRotation, armExtension; // Motors for Viper-Slide arm extension and rotation
     //private Servo clawServo; // Servo for claw open/close
 
@@ -171,32 +177,45 @@ public class RobotHardware {
         leftBackDrive  = myOpMode.hardwareMap.get(DcMotorEx.class, "leftback_drive");
         rightBackDrive = myOpMode.hardwareMap.get(DcMotorEx.class, "rightback_drive");
 
-        // Set the run mode, braking, and direction for each motor, make sure robot it not moving
-        // (power to zero and/or stop commands), and initialize encoders, etc.
-        // NOTE: There may be order and/or timing issues here, e.g., setting the runmode to
-        // RUN_USING_ENCODER may need to happen after setting the runmode to STOP_AND_RESET_ENCODER,
-        // and after a short sleep by the opmode (e.g., 100ms) to allow the encoders to reset.
-        leftFrontDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        leftFrontDrive.setDirection(DcMotorEx.Direction.REVERSE);
-        leftFrontDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        // Set the direction, braking, and run mode for each motor 
+        leftFrontDrive.setDirection(DcMotorEx.Direction.REVERSE); // based on which way the motor is mounted
+        leftFrontDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE); // don't allow overrun
+        leftFrontDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER); // increased accuracy and balance from controls
 
-        leftBackDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         leftBackDrive.setDirection(DcMotorEx.Direction.REVERSE);
         leftBackDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        leftBackDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
-        rightFrontDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         rightFrontDrive.setDirection(DcMotorEx.Direction.FORWARD);
         rightFrontDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        rightFrontDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
-        rightBackDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         rightBackDrive.setDirection(DcMotorEx.Direction.FORWARD);
         rightBackDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        rightBackDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
-        // What do we need here to ensure that the encoders are reset before we set the run mode to
-        // RUN_USING_ENCODER? A Thread.sleep() call, a myOpMode.wait() call, a myOpMode.idle() call
-        // (only for Linear opmodes), etc.?
-
-        leftFrontDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER); // increased accuracy and balance from controls
+        // Make sure robot it not moving (power to zero and/or stop commands), and initialize
+        // encoders
+        // NOTE: There's a lot of ambiguity in the documentation and the forums of whether the motor
+        // power will be set to 0 when setting the mode to STOP_AND_RESET_ENCODER and whether the
+        // mode will change back to RUN_USING_ENCODER after the encoders are reset or not. For both
+        // these questions, the the documentation basically says "some motor controllers yes, some
+        // motor controllers no." Also, there are questions of whether a short sleep by is needed
+        // (e.g., 100ms) after setting the mode to STOP_AND_RESET_ENCODER to allow the encoders to
+        // reset before setting the mode back to RUN_USING ENCODER.
+        leftFrontDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        leftFrontDrive.setPower(0.0);
+        leftBackDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        leftBackDrive.setPower(0.0);
+        rightFrontDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        rightFrontDrive.setPower(0.0);
+        rightBackDrive.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        rightBackDrive.setPower(0.0);
+        
+        // ????? What do we need here (if anything) to ensure that the encoders are reset before we
+        // set the run mode back to RUN_USING_ENCODER? A Thread.sleep() call, a myOpMode.wait()
+        // call, a myOpMode.idle() call (only for Linear opmodes), etc.?
+        leftFrontDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER); // may not be needed
         leftBackDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         rightFrontDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         rightBackDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
@@ -218,7 +237,6 @@ public class RobotHardware {
         //armRotation = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_rotation");
         //armExtensions = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_extension");
         //clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
-
     }
 
     /* ----- Low level motion methods for four-motor Mecanum drive train ----- */
@@ -298,10 +316,10 @@ public class RobotHardware {
         int oldLeftCounter = lastLeftEncoderPosition;
         int oldAuxOdometryCounter = lastAuxEncoderPosition;
 
-        // read new encoder values from odometry deadwheels
-        lastRightEncoderPosition = encoderRight.getCurrentPosition(); // check sign based on installation
-        lastLeftEncoderPosition = encoderLeft.getCurrentPosition();
-        lastAuxEncoderPosition = encoderAux.getCurrentPosition();
+        // read new encoder values from odometry deadwheels and adjust for direction
+        lastRightEncoderPosition = encoderRight.getCurrentPosition() * DEADWHEEL_LEFT_DIRECTION; 
+        lastLeftEncoderPosition = encoderLeft.getCurrentPosition() * DEADWHEEL_RIGHT_DIRECTION; 
+        lastAuxEncoderPosition = encoderAux.getCurrentPosition() * DEADWHEEL_AUX_DIRECTION;
 
         // calculate x, y, and theta (heading) deltas (robot perspective) since last measurement
         int dl = lastLeftEncoderPosition  - oldLeftCounter;
@@ -464,6 +482,12 @@ public class RobotHardware {
      */
     public void drive(double distance, double speed) {
 
+        // Proportional controllers for x, y, and yaw
+        ProportionalController xController = new ProportionalController(PID_CONTROLLER_X_KP, distance);
+        ProportionalController yController = new ProportionalController(PID_CONTROLLER_Y_KP, 0.0);
+        ProportionalController yawController = new ProportionalController(PID_CONTROLLER_YAW_KP, 0.0);
+
+
     }
 
     /**
@@ -473,6 +497,12 @@ public class RobotHardware {
      */
     public void strafe(double distance, double speed) {
 
+        // Proportional controllers for x, y, and yaw
+        ProportionalController xController = new ProportionalController(PID_CONTROLLER_X_KP, 0.0);
+        ProportionalController yController = new ProportionalController(PID_CONTROLLER_Y_KP, distance);
+        ProportionalController yawController = new ProportionalController(PID_CONTROLLER_YAW_KP, 0.0);
+
+
     }
 
     /**
@@ -481,6 +511,12 @@ public class RobotHardware {
      * @param speed Speed factor to apply (should use defined constants)
      */
     public void turn(double angle, double speed) {
+
+        // Proportional controllers for x, y, and yaw
+        ProportionalController xController = new ProportionalController(PID_CONTROLLER_X_KP, 0.0);
+        ProportionalController yController = new ProportionalController(PID_CONTROLLER_Y_KP, 0.0);
+        ProportionalController yawController = new ProportionalController(PID_CONTROLLER_YAW_KP, angle);
+
 
     }
 
@@ -493,43 +529,6 @@ public class RobotHardware {
      */
     public void moveToPosition(double x, double y, double speed) {
 
-        /*
-         * the x and y are in field coordinate system, so the first step is to convert them to
-         * robot-oriented coordinates based on the current filed position and heading of the robot.
-         */
-
-        // Proportional controllers for X and Y power
-        ProportionalController xController = new ProportionalController(PID_CONTROLLER_X_KP, x);
-        ProportionalController yController = new ProportionalController(PID_CONTROLLER_Y_KP, y);
-
-        /* loop until position is obtained or opMode is stopped */
-        while(((LinearOpMode)myOpMode).opModeIsActive()) {
-
-            /* update the current position */
-            updateOdometry();
-
-            /* check if we are close enough to the target */
-            if (Math.abs(x - getPosX()) < MOVE_POSITION_TOLERANCE && Math.abs(y - getPosY()) < MOVE_POSITION_TOLERANCE) {
-                break;
-            }
-
-            /* calculate s */
-            double dx = x - getPosX();
-            double dy = y - getPosY();
-
-            /* convert deltas to robot-oriented X and Y errors for PID controller calculations */
-            double h = getHeading();
-            double errorX = dx * Math.cos(h) + dy * Math.sin(h);
-            double errorY = -dx * Math.sin(h) + dy * Math.cos(h);
-
-
-            /* set motor power through move method */
-            //move(powerX, powerY, 0.0, false); // no yaw
-
-
-            /* provide some time for motors to run */
-            //((LinearOpMode) myOpMode).idle(); - not needed because opModeIsActve() will do this
-        }
     }
 
     /**
@@ -539,41 +538,6 @@ public class RobotHardware {
      */
     public void rotateTo(double heading, double speed) {
 
-        /* tracking variables for PID controller */
-        double integralSum = 0.0;
-        double lastError = 0.0;
-
-        /* timer for time for move */
-        ElapsedTime timer = new ElapsedTime();
-
-        /* loop until position is obtained or opMode is stopped */
-        while(((LinearOpMode)myOpMode).opModeIsActive()) {
-
-            /* update the current position */
-            updateOdometry();
-
-            /* check if we are close enough to the target */
-            if (Math.abs(heading - getHeading()) < ROTATE_HEADING_TOLERANCE) {
-                break;
-            }
-
-            /* measure error between current heading and target for PID controller calculations */
-            double error = heading - getHeading();
-
-            /* use PID controller to calculate yaw rate (power) */
-            double derivative = (error - lastError) / timer.seconds(); // rate of change of the error
-            integralSum += error * timer.seconds(); // sum of all error over time
-            double power = PID_CONTROLLER_HEADING_KP * error + PID_CONTROLLER_HEADING_KI * integralSum + PID_CONTROLLER_HEADING_KD * derivative;
-
-            /* set motor power through move method */
-            //move(0.0, 0.0, power, speed); // no x or y motion
-
-            /* update last error values */
-            lastError = error;
-
-            /* reset timer for next iteration */
-            timer.reset();
-        }
     }
 
 }
@@ -581,6 +545,7 @@ public class RobotHardware {
 /* ----- Closed-loop controller classes for use by mid and high level motion functions ----- */
 /**
  * Proportional Controller class for computing motor power during autonomous motion
+ * NOTE: This probably needs more parameters: tolerance, max power, etc.
  */
 class ProportionalController {
 
@@ -610,6 +575,10 @@ class ProportionalController {
 
 /**
  * PID Controller class for computing motor power during autonomous motion
+ * NOTE: This can be made just a proportional controller to replace above by setting the Ki and Kd
+ * gains to zero. But it may not be as efficient as having a separate class for the proportional
+ * controller because of having to update the tracking values.
+ * ???? See notes above
  */
 class PIDController {
 
