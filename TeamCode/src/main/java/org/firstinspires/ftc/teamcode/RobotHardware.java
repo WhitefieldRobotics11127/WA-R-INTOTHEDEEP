@@ -74,9 +74,9 @@ public class RobotHardware {
      * coordinates). The values are initially set from physical measurements of the robot but should
      * be tweaked for accuracy from testing (e.g., spin test and/or strafe/curve testing).
      */
-    public static final int DEADWHEEL_LEFT_DIRECTION = 1; // Allows for adjustment of + direction of left encoder - should be installed front to back
+    public static final int DEADWHEEL_LEFT_DIRECTION = -1; // Allows for adjustment of + direction of left encoder - should be installed front to back
     public static final int DEADWHEEL_RIGHT_DIRECTION = -1; // Allows for adjustment of + direction of right encoder - should be installed front to back
-    public static final int DEADWHEEL_AUX_DIRECTION = 1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
+    public static final int DEADWHEEL_AUX_DIRECTION = -1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
     public static final double DEADWHEEL_MM_PER_TICK = 0.0754; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
     public static final double DEADWHEEL_FORWARD_OFFSET = 106.0; //forward offset (length B) of aux deadwheel from robot center of rotation in MM
     public static final double DEADWHEEL_TRACKWIDTH = 305.0; // distance (length L) between left and right deadwheels in MM

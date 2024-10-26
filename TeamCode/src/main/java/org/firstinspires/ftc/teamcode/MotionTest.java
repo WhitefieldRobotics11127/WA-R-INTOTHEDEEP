@@ -70,8 +70,8 @@ public class MotionTest extends OpMode
 
         // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
         double axial   = -gamepad1.left_stick_y;  // Note: pushing stick forward gives negative value
-        double lateral =  gamepad1.left_stick_x;
-        double yaw     =  gamepad1.right_stick_x;
+        double lateral =  -gamepad1.left_stick_x;
+        double yaw     =  -gamepad1.right_stick_x;
 
         // Send the power level to the wheels
         robot.move(axial, lateral, yaw, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
