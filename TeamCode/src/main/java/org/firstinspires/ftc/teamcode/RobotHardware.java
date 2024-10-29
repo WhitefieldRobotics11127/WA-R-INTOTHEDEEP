@@ -58,7 +58,7 @@ public class RobotHardware {
     
     // Allow drivetrain to operate in different at different, selectable "speeds"
     public  static final double MOTOR_SPEED_FACTOR_NORMAL = 0.65; // Normal power limit
-    public static final double MOTOR_SPEED_FACTOR_SPRINT = 1.0; // Sprint power limit
+    public static final double MOTOR_SPEED_FACTOR_DAVIS = 1.0; // Sprint power limit
     public static final double MOTOR_SPEED_FACTOR_PRECISE = 0.4; // Precise positioning power limit
     
     // Correction factors for individual motors to account for mechanical differences
@@ -643,7 +643,8 @@ public class RobotHardware {
 
 /**
  * PID Controller class for computing motor power during autonomous motion
- * NOTE: This can be made just a proportional controller by only passing a proportional (Kp) gain.
+ * NOTE: This can be made just a proportional controller ("P Controller") by only passing a
+ * proportional (Kp) gain.
  */
 class PIDController {
 
@@ -673,7 +674,7 @@ class PIDController {
     }
 
     // Constructor to set the controller parameters with just proportional gain. This makes the
-    // controller a Proportional controller.
+    // controller a P controller.
     public PIDController(double target, double deadband, double Kp) {
         this.target = target;
         this.deadband = deadband;
@@ -706,7 +707,7 @@ class PIDController {
         if (Math.abs(error) < deadband) {
             return 0.0;
         } else {
-            // Calculate the control output (proportional control)
+            // Calculate the control output
             return Kp * error + Ki * integralSum + Kd * derivative;
         }
     }

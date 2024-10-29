@@ -26,6 +26,8 @@ public class MotionTest extends OpMode
     // Declare OpMode members.
     final private ElapsedTime runtime = new ElapsedTime();
 
+    double speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
+
     /*
      * Code to run ONCE when the driver hits INIT
      */
@@ -78,6 +80,19 @@ public class MotionTest extends OpMode
             robot.resetOdometryCounters();
         }
 
+        // check whether the x button is pressed and change the speed factor to davis speed
+        if (gamepad1.x && !lastGamepad1.x) {
+            speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_DAVIS; // fly high fry guy
+        }
+        // check whether the b button is pressed and change the speed factor to precise speed
+        if(gamepad1.b && !lastGamepad1.b) {
+            speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_PRECISE;
+        }
+        // check whether the a button is pressed and change the speed factor to normal speed
+        if(gamepad1.a && !lastGamepad1.a) {
+            speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
+        }
+
         // Use left joystick to go forward & strafe, and right joystick to rotate.
         // Note that the robot.move() function takes values in FTC coordinate system values, where
         // +x is forward, +y is left, and +yaw is counter-clockwise rotation.
@@ -86,7 +101,7 @@ public class MotionTest extends OpMode
         double yaw     =  -gamepad1.right_stick_x;  // pushing stick left gives negative value
 
         // Send the power level to the wheels
-        robot.move(axial, lateral, yaw, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
+        robot.move(axial, lateral, yaw, speedFactor);
 
         // Save the current gamepad states
         lastGamepad1.copy(gamepad1);
