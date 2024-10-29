@@ -42,6 +42,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 //import org.firstinspires.ftc.vision.VisionPortal;
 //import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 
 /**
  * Hardware abstraction class for WA Robotics INTO THE DEEP competition robot
@@ -59,11 +60,12 @@ public class RobotHardware {
     // Allow drivetrain to operate in different at different, selectable "speeds"
     public  static final double MOTOR_SPEED_FACTOR_NORMAL = 0.65; // Normal power limit
     public static final double MOTOR_SPEED_FACTOR_DAVIS = 1.0; // Sprint power limit
-    public static final double MOTOR_SPEED_FACTOR_PRECISE = 0.4; // Precise positioning power limit
+    public static final double MOTOR_SPEED_FACTOR_PRECISE = 0.35; // Precise positioning power limit
+    public static final double MOTOR_SPEED_FACTOR_AUTONOMOUS = 0.4; // Separate speed for setting an Autonomous "speed" (power) limit
     
     // Correction factors for individual motors to account for mechanical differences
     // NOTE: If the robot is not driving straight, adjust these values to correct the issue.
-    // NOTE: these values may not be needed if all motors are using encoders and the run modes
+    // NOTE: these values may not be needed if all motors are using encoders and their run modes
     // are set to RUN_USING_ENCODER
     public static final double OMNI_CORRECTION_LEFT_FRONT = 1.0; // Correction factor for left front motor
     public static final double OMNI_CORRECTION_RIGHT_FRONT = 1.0; // Correction factor for right front motor
@@ -104,7 +106,7 @@ public class RobotHardware {
 
 
     // PID gain values for each of the three closed-loop controllers (X, Y, and heading)
-    public static final double PID_CONTROLLER_X_KP = 0.16; // Proportional gain for X position error
+    public static final double PID_CONTROLLER_X_KP = 0.019; // Proportional gain for X position error
     public static final double PID_CONTROLLER_X_KI = 0.0; // Integral gain for X position error
     public static final double PID_CONTROLLER_X_KD = 0.0; // Derivative gain for X position error
     public static final double PID_CONTROLLER_Y_KP = 0.1; // Tolerance for Y position error
@@ -147,7 +149,7 @@ public class RobotHardware {
      */
     // last read odometry deadwheel encoder positions 
     // NOTE: these are used to calculate encoder deltas since last call to updateOdometry()
-    // These are made public temporarily for initial testing/tuning purposes
+    // NOTE: These are made public temporarily for initial testing/tuning purposes
     public int lastRightEncoderPosition, lastLeftEncoderPosition, lastAuxEncoderPosition;
 
     // translated x, y, and heading odometry counters in mm since last reset
@@ -639,6 +641,8 @@ public class RobotHardware {
 
     }
 
+    /* ----- Vision processing methods ----- */
+
 }
 
 /**
@@ -665,7 +669,7 @@ class PIDController {
     private int lastTime = 0;
 
     // Constructor to set the PID controller parameters with all (PID) gain values
-    public PIDController(double target, double deadband, double Kp, double Ki,double Kd) {
+    public PIDController(double target, double deadband, double Kp, double Ki, double Kd) {
         this.target = target;
         this.deadband = deadband;
         this.Kp = Kp;
@@ -704,11 +708,10 @@ class PIDController {
         lastError = error;
 
         // Check if the error is within the deadband range
-        if (Math.abs(error) < deadband) {
+        if (Math.abs(error) < deadband)
             return 0.0;
-        } else {
+        else
             // Calculate the control output
             return Kp * error + Ki * integralSum + Kd * derivative;
-        }
     }
 }
