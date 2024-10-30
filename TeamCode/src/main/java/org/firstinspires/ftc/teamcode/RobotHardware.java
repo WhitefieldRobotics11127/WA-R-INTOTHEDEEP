@@ -80,9 +80,10 @@ public class RobotHardware {
     public static final int DEADWHEEL_LEFT_DIRECTION = 1; // Allows for adjustment of + direction of left encoder - should be installed front to back
     public static final int DEADWHEEL_RIGHT_DIRECTION = -1; // Allows for adjustment of + direction of right encoder - should be installed front to back
     public static final int DEADWHEEL_AUX_DIRECTION = 1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
-    public static final double DEADWHEEL_MM_PER_TICK = 0.0754; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
+    // The following values were calibrated for the unladen (no arm/claw assembly) robot on 10/29/2024 and 10/30/2024
+    public static final double DEADWHEEL_MM_PER_TICK = 0.07512; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
     public static final double DEADWHEEL_FORWARD_OFFSET = -106.0; //forward offset (length B) of aux deadwheel from robot center of rotation in MM (negative if behind)
-    public static final double DEADWHEEL_TRACKWIDTH = 305.0; // distance (length L) between left and right deadwheels in MM
+    public static final double DEADWHEEL_TRACKWIDTH = 308.4; // distance (length L) between left and right deadwheels in MM
 
     /* Parameter values for arm (Viper-Slide).
      * Put any parameter values here, e.g. max and min positions for extension, etc.
@@ -106,15 +107,15 @@ public class RobotHardware {
 
 
     // PID gain values for each of the three closed-loop controllers (X, Y, and heading)
-    public static final double PID_CONTROLLER_X_KP = 0.019; // Proportional gain for X position error
-    public static final double PID_CONTROLLER_X_KI = 0.0; // Integral gain for X position error
-    public static final double PID_CONTROLLER_X_KD = 0.0; // Derivative gain for X position error
-    public static final double PID_CONTROLLER_Y_KP = 0.1; // Tolerance for Y position error
-    public static final double PID_CONTROLLER_Y_KI = 0.0; // Integral gain for Y position error
-    public static final double PID_CONTROLLER_Y_KD = 0.0; // Derivative gain for Y position error
-    public static final double PID_CONTROLLER_YAW_KP = 0.1; // Proportional gain for heading error
-    public static final double PID_CONTROLLER_YAW_KI = 0.0; // Integral gain for heading error
-    public static final double PID_CONTROLLER_YAW_KD = 0.0; // Derivative gain for heading error
+    public static final double PID_CONTROLLER_X_KP = 0.005; // Proportional gain for axial (forward) position error
+    public static final double PID_CONTROLLER_X_KI = 0.0; // Integral gain for axial (forward) position error
+    public static final double PID_CONTROLLER_X_KD = 0.0; // Derivative gain for axial (forward) position error
+    public static final double PID_CONTROLLER_Y_KP = 0.003; // Proportional gain for lateral (strafe) position error
+    public static final double PID_CONTROLLER_Y_KI = 0.0; // Integral gain for lateral (strafe) position error
+    public static final double PID_CONTROLLER_Y_KD = 0.0; // Derivative gain for lateral (strafe) position error
+    public static final double PID_CONTROLLER_YAW_KP = 1.3; // Proportional gain for yaw (turning) error
+    public static final double PID_CONTROLLER_YAW_KI = 0.0; // Integral gain for yaw (turning) error
+    public static final double PID_CONTROLLER_YAW_KD = 0.0; // Derivative gain for yaw (turning) error
     
     /* ----- Member variables (private to hide from the calling opmode) ----- */
 
@@ -356,7 +357,7 @@ public class RobotHardware {
         lastLeftEncoderPosition = encoderLeft.getCurrentPosition() * DEADWHEEL_LEFT_DIRECTION;
         lastAuxEncoderPosition = encoderAux.getCurrentPosition() * DEADWHEEL_AUX_DIRECTION;
 
-        // calculate x, y, and theta (heading) deltas (robot perspective) since last measurement
+        // calculate x, y, n1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       and theta (heading) deltas (robot perspective) since last measurement
         int dl = lastLeftEncoderPosition  - oldLeftCounter;
         int dr= lastRightEncoderPosition - oldRightCounter;
         int da = lastAuxEncoderPosition - oldAuxOdometryCounter;
@@ -412,12 +413,9 @@ public class RobotHardware {
      * odometry counters by the opmode for display in telemetry during testing.
      */
     public double getOdometryHeading() {
-        double theta = headingOdometryCounter / (2 * Math.PI) * 360;
-        if (theta > 180) {
-            return -360 - theta;
-        } else {
-            return theta;
-        }
+        double theta = headingOdometryCounter / (2 * Math.PI) * 360 % 360;
+
+        return theta;
     }
 
     /**
