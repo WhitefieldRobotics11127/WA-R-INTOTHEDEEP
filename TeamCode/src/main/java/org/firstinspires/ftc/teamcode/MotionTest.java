@@ -9,6 +9,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
+import java.util.Timer;
+
 /*
  * OpMode to test/calibrate drivetrain and odometry
  */
@@ -25,7 +27,6 @@ public class MotionTest extends OpMode
 
     // Declare OpMode members.
     final private ElapsedTime runtime = new ElapsedTime();
-
     double speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
 
     /*
@@ -123,6 +124,11 @@ public class MotionTest extends OpMode
         // Stop the robot
         robot.stop();
 
+        // do final odometry update
+        robot.updateOdometry();
+
         telemetry.addData("Status", "Stopped. Total Runtime: (%s)", runtime.toString());
+        telemetry.addData("Odometry", "x: %f mm, y: %f mm, hdg: %f °", robot.getOdometryX(), robot.getOdometryY() , robot.getOdometryHeading());
+        telemetry.addData("Field Position", "x: %f mm, y: %f mm, hdg: %f °", robot.getPosX(), robot.getPosY() , robot.getHeading(AngleUnit.DEGREES));
     }
 }
