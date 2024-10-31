@@ -80,7 +80,7 @@ public class RobotHardware {
     public static final int DEADWHEEL_LEFT_DIRECTION = 1; // Allows for adjustment of + direction of left encoder - should be installed front to back
     public static final int DEADWHEEL_RIGHT_DIRECTION = -1; // Allows for adjustment of + direction of right encoder - should be installed front to back
     public static final int DEADWHEEL_AUX_DIRECTION = 1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
-    // The following values were calibrated for the unladen (no arm/claw assembly) robot on 10/29/2024 and 10/30/2024
+    // The following values were calibrated for the unladen (no arm/claw assembly) robot on 10/29/2024
     public static final double DEADWHEEL_MM_PER_TICK = 0.07512; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
     public static final double DEADWHEEL_FORWARD_OFFSET = -106.0; //forward offset (length B) of aux deadwheel from robot center of rotation in MM (negative if behind)
     public static final double DEADWHEEL_TRACKWIDTH = 308.4; // distance (length L) between left and right deadwheels in MM
@@ -98,7 +98,7 @@ public class RobotHardware {
      */
 
     // Tolerance values for closed-loop controllers for use in translate and rotate commands
-    public static final double MOVE_POSITION_TOLERANCE = 10.0; // Tolerance for position in MM
+    public static final double MOVE_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
     public static final double ROTATE_HEADING_TOLERANCE = 0.03489; // Tolerance for heading in radians (~2 degrees)
 
     public static final double PID_CONTROLLER_X_DEADBAND = 5.0; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
@@ -106,17 +106,23 @@ public class RobotHardware {
     public static final double PID_CONTROLLER_YAW_DEADBAND = 0.02; // Deadband range for Yaw power calculation. Should be less than ROTATE_HEADING_TOLERANCE
 
 
-    // PID gain values for each of the three closed-loop controllers (X, Y, and heading)
-    public static final double PID_CONTROLLER_X_KP = 0.005; // Proportional gain for axial (forward) position error
-    public static final double PID_CONTROLLER_X_KI = 0.0; // Integral gain for axial (forward) position error
+    // PID gain values for each of the three closed-loop controllers (X, Y, and heading). These need
+    // to be calibrated:
+    //  - For proportional (Kp) - start with reasonable distance (error) (in mm) where the robot should start
+    // to slow down while approaching the destination and take the inverse. Then adjust up until the robot
+    // regularly osicillates around the target position.
+    // - Once Kp is set, increase the Kd value from zero until the end behavior stabilizes.
+    // - We will likely not use Ki values.
+    public static final double PID_CONTROLLER_X_KP = 0.0067; // Proportional gain for axial (forward) position error - start slowing down at 150 mm (~ 6 in.)
     public static final double PID_CONTROLLER_X_KD = 0.0; // Derivative gain for axial (forward) position error
-    public static final double PID_CONTROLLER_Y_KP = 0.003; // Proportional gain for lateral (strafe) position error
-    public static final double PID_CONTROLLER_Y_KI = 0.0; // Integral gain for lateral (strafe) position error
+    public static final double PID_CONTROLLER_X_KI = 0.0; // Integral gain for axial (forward) position error
+    public static final double PID_CONTROLLER_Y_KP = 0.01; // Proportional gain for lateral (strafe) position error - start slowing down at 100 mm (~ 4 in.)
     public static final double PID_CONTROLLER_Y_KD = 0.0; // Derivative gain for lateral (strafe) position error
-    public static final double PID_CONTROLLER_YAW_KP = 1.3; // Proportional gain for yaw (turning) error
-    public static final double PID_CONTROLLER_YAW_KI = 0.0; // Integral gain for yaw (turning) error
+    public static final double PID_CONTROLLER_Y_KI = 0.0; // Integral gain for lateral (strafe) position error
+    public static final double PID_CONTROLLER_YAW_KP = 4; // Proportional gain for yaw (turning) error - start slowing down at 0.25 radians (~ 15 degrees)
     public static final double PID_CONTROLLER_YAW_KD = 0.0; // Derivative gain for yaw (turning) error
-    
+    public static final double PID_CONTROLLER_YAW_KI = 0.0; // Integral gain for yaw (turning) error
+
     /* ----- Member variables (private to hide from the calling opmode) ----- */
 
     /*
@@ -155,7 +161,7 @@ public class RobotHardware {
 
     // translated x, y, and heading odometry counters in mm since last reset
     // NOTE: these are updated by the updateOdometry() method and used for simple movement commands
-    // (drive, strafe, rotate).
+    // (forward, strafe, turn).
     private double xOdometryCounter, yOdometryCounter, headingOdometryCounter;
     
     // Current robot position (x,y, heading) in field coordinate system
@@ -339,7 +345,7 @@ public class RobotHardware {
          * https://gm0.org/en/latest/docs/software/concepts/odometry.html. The code currently
          * implements linear approximations of deltas, i.e., assuming that the individual x and y
          * movements between updates occurred in straight lines. This may be fine for the mid-level
-         * autonomous movement functions (drive, strafe, turn), but may build up errors over time
+         * autonomous movement functions (forward, strafe, turn), but may build up errors over time
          * with movement functions or user driving. It would be more accurate if we use differential
          * equations (referred to as "Pose Exponentials" in the GM0 documentation) for computing the
          * deltas, i.e., assume that the movement between updates occurs in arcs. The differential
@@ -369,14 +375,22 @@ public class RobotHardware {
         // update the x, y, and heading odometry counters
         xOdometryCounter += dx;
         yOdometryCounter += dy;
-        headingOdometryCounter += dtheta;
-        
+        headingOdometryCounter = (headingOdometryCounter + dtheta) % (2.0 * Math.PI); // normalize new heading to [0, 2pi)
+        if(headingOdometryCounter < 0) {
+            headingOdometryCounter += 2.0 * Math.PI;
+        }
+
         // update the current position in field coordinate system from the deltas
         double theta = currentFieldPosition.getHeading(AngleUnit.RADIANS) + (dtheta / 2);
         double newX = currentFieldPosition.getX(DistanceUnit.MM) + dx * Math.cos(theta) - dy * Math.sin(theta);
         double newY = currentFieldPosition.getY(DistanceUnit.MM) + dx * Math.sin(theta) + dy * Math.cos(theta);
-        double newHeading = (currentFieldPosition.getHeading(AngleUnit.RADIANS) + dtheta);
+        double newHeading = (currentFieldPosition.getHeading(AngleUnit.RADIANS) + dtheta) % (2.0 * Math.PI); // normalize to [0, 2pi)
+        if(newHeading < 0) {
+            newHeading += 2.0 * Math.PI;
+        }
         currentFieldPosition = new Pose2D(DistanceUnit.MM, newX, newY, AngleUnit.RADIANS, newHeading);
+
+
     }
 
     /**
@@ -393,7 +407,7 @@ public class RobotHardware {
     }
 
     /**
-     * Return axial (x) odometry counter in MM units. This method is primarily for retrieveal of the
+     * Return axial (x) odometry counter in MM units. This method is primarily for retrieval of the
      * odometry counters by the opmode for display in telemetry during testing.
      */
     public double getOdometryX() {
@@ -401,7 +415,7 @@ public class RobotHardware {
     }
 
     /**
-     * Return lateral (y) odometry counter in MM units. This method is primarily for retrieveal of
+     * Return lateral (y) odometry counter in MM units. This method is primarily for retrieval of
      * the odometry counters by the opmode for display in telemetry during testing.
      */
     public double getOdometryY() {
@@ -409,13 +423,11 @@ public class RobotHardware {
     }
 
     /**
-     * Return heading odometry counter in degrees. This method is primarily for retrieveal of the
+     * Return heading odometry counter in radians. This method is primarily for retrieval of the
      * odometry counters by the opmode for display in telemetry during testing.
      */
     public double getOdometryHeading() {
-        double theta = headingOdometryCounter / (2 * Math.PI) * 360 % 360;
-
-        return theta;
+        return headingOdometryCounter;
     }
 
     /**
@@ -436,7 +448,9 @@ public class RobotHardware {
      * units.
      * @param x x-coordinate of center of robot in field coordinates
      * @param y y-coordinate of center of robot in field coordinates
+     * @param dUnit distance unit for x and y coordinates
      * @param heading current angle of robot relative to positive x-axis in field coordinates
+     * @param aUnit angle unit for heading
      */
     public void setFieldPosition(double x, double y, DistanceUnit dUnit, double heading, AngleUnit aUnit) {
         currentFieldPosition = new Pose2D(dUnit, x, y, aUnit, heading);
@@ -452,37 +466,37 @@ public class RobotHardware {
     /**
      * Return X coordinate of current field position in MM units
      */
-    public double getPosX() {
+    public double getFieldPosX() {
         return currentFieldPosition.getX(DistanceUnit.MM);
     }
 
     /**
      * Return X coordinate of current field position in specified units
      */
-    public double getPosX(DistanceUnit distanceUnit) {
+    public double getFieldPosX(DistanceUnit distanceUnit) {
         return currentFieldPosition.getX(distanceUnit);
     }
 
     /**
      * Return Y coordinate of current field position in MM units
      */
-    public double getPosY() {
+    public double getFieldPosY() {
         return currentFieldPosition.getY(DistanceUnit.MM);
     }
 
     /**
      * Return Y coordinate of current field position in specified units
      */
-    public double getPosY(DistanceUnit distanceUnit) {
+    public double getFieldPosY(DistanceUnit distanceUnit) {
         return currentFieldPosition.getY(distanceUnit);
     }
 
     /**
-     * Return normalized heading of current field position. Best for performing higher level
+     * Return heading of current field position. Best for performing higher level
      * calculations and control.
      */
-    public double getHeading() {
-        return currentFieldPosition.getHeading(AngleUnit.RADIANS) % (2.0 * Math.PI); // normalize to [0, 2pi);
+    public double getFieldHeading() {
+        return currentFieldPosition.getHeading(AngleUnit.RADIANS);
     }
 
     /**
@@ -490,7 +504,7 @@ public class RobotHardware {
      * angle, i.e., (-180, 180] degrees or (-Pi, Pi] radians from +X axis - positive
      * counter-clockwise. Best for display in telemetry.
      */
-    public double getHeading(AngleUnit angleUnit) {
+    public double getFieldHeading(AngleUnit angleUnit) {
         if(angleUnit == AngleUnit.DEGREES) {
             double theta = currentFieldPosition.getHeading(AngleUnit.DEGREES);
             if (theta > 180) {
@@ -518,7 +532,7 @@ public class RobotHardware {
      * @param distance Distance (MM) to move: + is forward, - is reverse
      * @param speed Speed factor to apply (should use defined constants)
      */
-    public void drive(double distance, double speed) {
+    public void forward(double distance, double speed) {
 
         // Proportional controllers for x, y, and yaw
         PIDController xController = new PIDController(distance, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP);
