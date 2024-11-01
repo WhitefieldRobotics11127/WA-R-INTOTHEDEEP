@@ -42,7 +42,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 //import org.firstinspires.ftc.vision.VisionPortal;
 //import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+//import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 
 /**
  * Hardware abstraction class for WA Robotics INTO THE DEEP competition robot
@@ -138,7 +138,6 @@ public class RobotHardware {
      */
     private DcMotorEx leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive;  //  Motors for Mecanum drive
     private DcMotorEx encoderRight, encoderLeft, encoderAux; // Encoders (deadwheels) for odometry
-    private IMU imu; // IMU built into Rev Control Hub
 
     /*
      * NOTE: Some of these objects may be pointed to the same motor/encoder ports as the deadwheel
@@ -150,6 +149,8 @@ public class RobotHardware {
 
     //private VisionPortal visionPortal; // Used to manage the video source.
     //private AprilTagProcessor aprilTag; // Used for managing the AprilTag detection processor
+
+    private IMU imu; // IMU built into Rev Control Hub
 
     /*
      * Variables for tracking robot state     
@@ -171,7 +172,7 @@ public class RobotHardware {
 
     // keep a reference to the calling opmode so that we have access to hardwareMap and other
     // properties and statuses from the running opmode.
-    private OpMode myOpMode = null; 
+    private OpMode myOpMode;
 
     /**
      * Constructor allows calling OpMode to pass a reference to itself.
@@ -389,8 +390,6 @@ public class RobotHardware {
             newHeading += 2.0 * Math.PI;
         }
         currentFieldPosition = new Pose2D(DistanceUnit.MM, newX, newY, AngleUnit.RADIANS, newHeading);
-
-
     }
 
     /**
@@ -655,6 +654,22 @@ public class RobotHardware {
 
     /* ----- Vision processing methods ----- */
 
+    /* ----- Arm and claw control methods ----- */
+    public void rotateArm(double power) {
+        //armRotation.setPower(power);
+    }
+
+    public void extendArm(double power) {
+        //armExtension.setPower(power);
+    }
+
+    public void openClaw() {
+        //clawServo.setPosition(0.0);
+    }
+
+    public void closeClaw() {
+        //clawServo.setPosition(1.0);
+    }
 }
 
 /**
