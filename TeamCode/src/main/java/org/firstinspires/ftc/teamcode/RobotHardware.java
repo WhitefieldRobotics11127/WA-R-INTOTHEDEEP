@@ -54,23 +54,26 @@ public class RobotHardware {
 
     /* ----- Public constants (so they can be used the calling OpMode) ----- */
     // Allow drivetrain to operate in different at different, selectable "speeds"
-    public static final double MOTOR_SPEED_FACTOR_NORMAL = 0.65; /** Normal speed for movement commands */
-    public static final double MOTOR_SPEED_FACTOR_DAVIS = 1.0; /** "Sprint" speed for movement commands */
-    public static final double MOTOR_SPEED_FACTOR_PRECISE = 0.35; /** Slower speed for movement commands to allow for precise odometry tracking */
-    public static final double MOTOR_SPEED_FACTOR_AUTONOMOUS = 0.4; /** Separate speed for setting an Autonomous "speed" (power) limit */
+    /** Normal speed for movement commands. */
+    public static final double MOTOR_SPEED_FACTOR_NORMAL = 0.65;
+    /** "Sprint" speed for movement commands. */
+    public static final double MOTOR_SPEED_FACTOR_DAVIS = 1.0;
+    /** Slower speed for movement commands to allow for precise odometry tracking. */
+    public static final double MOTOR_SPEED_FACTOR_PRECISE = 0.35;
+    /** Separate speed for Autonomous movement commands to use. */
+    public static final double MOTOR_SPEED_FACTOR_AUTONOMOUS = 0.4;
 
     // Limits for arm rotation (potentiometer voltage values)
-    public static final double ARM_ROTATION_MIN = 0.0; /** Initial position (stowed) */
-    public static final double ARM_ROTATION_MAX = 0.0; /** Fully rotated */
+    /** Initial (stowed) position for arm rotation (voltage). */
+    public static final double ARM_ROTATION_MIN = 0.0;
+    /** Fully rotated arm position (voltage). */
+    public static final double ARM_ROTATION_MAX = 0.0;
 
-    // Encoder Limits for extension and retraction of arm.
-    // NOTE: These values are not static or final because they may be swapped by the reset functions
-    // depending on whether it is an extended reset or a retracted reset. The ARM_EXTENSION_MIN
-    // should start at 0 since the encoder is reset when the hardware is initialized.
-    public int ARM_EXTENSION_MAX = 200000; /** Fully extended encoder position for arm. Either 0 or positive value depending on reset */
-    public int ARM_EXTENSION_MIN = 0; /** Fully retracted encoder position for arm. Either 0 or negative value depending on reset */
+    // Encoder Limit for extension of arm.
+    /** Encoder position for fully extended viper slide (arm) assuming fully retracted is 0. */
+    public static final int ARM_EXTENSION_LIMIT = 200000;
 
-    /* ----- Member variables (private to hide from the calling opmode) ----- */
+    /* ----- Member variables (private so hidden from the calling OpMode) ----- */
 
     /*
      * Parameter values for drivetrain motors.
@@ -133,18 +136,27 @@ public class RobotHardware {
      * Parameter values for arm (Viper-Slide).
      */
     // Limit the power to the rotation motor to prevent damage to the arm. This needs to be calibrated.
-    static final double ARM_ROTATION_POWER_FACTOR = 0.5; // Factor to limit power to arm rotation motor
+    static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.5; // Factor to limit power to arm rotation motor
 
-    // Tolerances and PID gain values for arm rotation position controller.
-    // These need to be calibrated:
+    // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
     static final double ARM_ROTATION_DEADBAND =0.2; // Deadband range for arm rotation position in volts
     static final double ARM_ROTATION_TOLERANCE = 0.5; // Tolerance for arm rotation position in volts
     static final double ARM_ROTATION_KP = 0.1; // Proportional gain for arm rotation position error
-    static final double ARM_ROTATION_KD = 0.0; // Derivative gain for arm rotation position error
-    static final double ARM_ROTATION_KI = 0.0; // Integral gain  for arm rotation position error
+
+    // Min and Max limits for encoder values for extension motor
+    // NOTE: These values are not static or final because they may be swapped by the reset functions
+    // depending on whether it is an extended reset or a retracted reset. The ARM_EXTENSION_MIN
+    // should initially be set to 0 and the ARM_EXTENSION_MAX should be set to ARM_EXTENSION_LIMIT
+    // based on a fully retracted position of the viper slide when the hardware is initialized.
+    int ARM_EXTENSION_MAX = ARM_EXTENSION_LIMIT;
+    int ARM_EXTENSION_MIN = 0;
 
     // Limit the power to the extension motor to prevent damage to the arm. This needs to be calibrated.
-    static final double ARM_EXTENSION_POWER_FACTOR = 0.5; // Factor to limit power to arm extension motor
+    static final double ARM_EXTENSION_POWER_LIMIT_FACTOR = 0.5; // Factor to limit power to arm extension motor
+
+    // Tolerances and proportional gain values for arm extension position controller. These need to be calibrated.
+    static final int ARM_EXTENSION_DEADBAND = 500; // Deadband range for arm extension position in ticks (1/4 turn)
+    static final double ARM_EXTENSION_KP = 0.1; // Proportional gain for arm extension position error
 
     /*
      * Parameter values for claw
@@ -325,7 +337,7 @@ public class RobotHardware {
     }
 
     /**
-     * Drive robot according to robot-oriented axes of motion
+     * Drive robot according to robot-oriented axes of motion.
      * This method can be used by teleop OpModes directly to drive the robot, since the human on
      * the gamepad will be viewing and controlling the robot on the field with subtle adjustments
      * (thus "closed-loop" controller). It is also called by the higher-level motion routines in
@@ -333,7 +345,7 @@ public class RobotHardware {
      * @param x "power" (relative speed) for axial movement (+ is forward)
      * @param y power for lateral movement (strafe) (+ is left)
      * @param yaw power for rotation (+ is counter-clockwise)
-     * @param speed factor to scale the power values (0.0 to 1.0). Use MOTOR_SPEED_FACTOR_NORMAL, MOTOR_SPEED_FACTOR_DAVIS, or MOTOR_SPEED_FACTOR_PRECISE.
+     * @param speed factor to scale the power values (0.0 to 1.0). Use MOTOR_SPEED_FACTOR_NORMAL, MOTOR_SPEED_FACTOR_DAVIS, or MOTOR_SPEED_FACTOR_PRECISE
      */
     public void move(double x, double y, double yaw, double speed) {
 
@@ -366,7 +378,7 @@ public class RobotHardware {
     }
 
     /**
-     * Stop robot motion
+     * Stop robot motion.
      */
     public void stop() {
 
@@ -438,7 +450,7 @@ public class RobotHardware {
     /**
      * Reset the x, y, and heading odometry counters to zero.
      * This method should be called at the beginning of simple move and rotate commands to ensure
-     * that translation and rotation are relevant to robot's starting position
+     * that translation and rotation are relevant to robot's starting position.
      */
     public void resetOdometryCounters() {
 
@@ -449,24 +461,27 @@ public class RobotHardware {
     }
 
     /**
-     * Return axial (x) odometry counter in MM units. This method is primarily for retrieval of the
-     * odometry counters by the opmode for display in telemetry during testing.
+     * Return axial (x) odometry counter in MM units.
+     * This method is primarily for retrieval of the odometry counters by the OpMode for display
+     * in telemetry during testing.
      */
     public double getOdometryX() {
         return xOdometryCounter;
     }
 
     /**
-     * Return lateral (y) odometry counter in MM units. This method is primarily for retrieval of
-     * the odometry counters by the opmode for display in telemetry during testing.
+     * Return lateral (y) odometry counter in MM units.
+     * This method is primarily for retrieval of the odometry counters by the OpMode for display
+     * in telemetry during testing.
      */
     public double getOdometryY() {
         return yOdometryCounter;
     }
 
     /**
-     * Return heading odometry counter in radians. This method is primarily for retrieval of the
-     * odometry counters by the opmode for display in telemetry during testing.
+     * Return heading odometry counter in radians.
+     * This method is primarily for retrieval of the odometry counters by the OpMode for display
+     * in telemetry during testing.
      */
     public double getOdometryHeading() {
         return headingOdometryCounter;
@@ -499,35 +514,35 @@ public class RobotHardware {
     }
 
     /**
-     * Return current field position as a Pose2D object
+     * Return current field position as a Pose2D object.
      */
     public Pose2D getCurrentFieldPosition() {
         return currentFieldPosition;
     }
 
     /**
-     * Return X coordinate of current field position in MM units
+     * Return X coordinate of current field position in MM units.
      */
     public double getFieldPosX() {
         return currentFieldPosition.getX(DistanceUnit.MM);
     }
 
     /**
-     * Return X coordinate of current field position in specified units
+     * Return X coordinate of current field position in specified units.
      */
     public double getFieldPosX(DistanceUnit distanceUnit) {
         return currentFieldPosition.getX(distanceUnit);
     }
 
     /**
-     * Return Y coordinate of current field position in MM units
+     * Return Y coordinate of current field position in MM units.
      */
     public double getFieldPosY() {
         return currentFieldPosition.getY(DistanceUnit.MM);
     }
 
     /**
-     * Return Y coordinate of current field position in specified units
+     * Return Y coordinate of current field position in specified units.
      */
     public double getFieldPosY(DistanceUnit distanceUnit) {
         return currentFieldPosition.getY(distanceUnit);
@@ -542,10 +557,11 @@ public class RobotHardware {
     }
 
     /**
-     * Return heading of current field position in specified units as FTC "rotational convention"
-     * angle, i.e., (-180, 180] degrees or (-Pi, Pi] radians from +X axis - positive
-     * counter-clockwise. Best for display in telemetry.
-     * @param angleUnit the angle unit (AngleUnit.DEGREES or AngleUnit.RADIANS) to return the heading in
+     * Return heading of current field position in specified units.
+     * This method converts the angle to FTC "rotational convention" angle, i.e.,
+     * (-180, 180] degrees or (-Pi, Pi] radians from +X axis - positive counter-clockwise. Best for
+     * display in telemetry.
+     * @param angleUnit the angle unit (AngleUnit.DEGREES or AngleUnit.RADIANS) in which to return the heading
      */
     public double getFieldHeading(AngleUnit angleUnit) {
         if(angleUnit == AngleUnit.DEGREES) {
@@ -709,24 +725,32 @@ public class RobotHardware {
     /* ----- Arm and claw control methods ----- */
 
     /**
-     * Power the motor to raise (+) or lower (-) the arm
+     * Power the motor to raise (+) or lower (-) the arm.
      * Applies the specified power to the arm rotation motor while monitoring the
      * potentiometer position and keeping the arm within limits.
      * @param power power for the arm rotation motor (-1.0 to 1.0)
      */
      public void rotateArm(double power) {
-         // needs a strategy for monitoring the angle potentiometer. Doing it on each call
-         // could work but may cause overshoots. A better strategy would be to have a PID
-         // controller that works off the potentiometer value and max/min values for the arm
-         // and is persisted across calls to this method. Would have to be reset when the specified
-         // power changes sign or is set to zero.
-         armRotation.setPower(power * ARM_ROTATION_POWER_FACTOR);
+         // Apply a proportional gain to the power as the position approaches the limits.
+         // NOTE: We can't use the PID controller class here since this function is called from
+         // teleop OpModes inside the loop() method and the PID controller can't be (easily)
+         // persisted across calls
+         double currentPosition = armRotationPosition.getVoltage();
+         double error;
+
+         if (power < 0)
+             error = currentPosition - ARM_ROTATION_MIN;
+         else
+             error = ARM_ROTATION_MAX - currentPosition;
+
+         if (Math.abs(error) > ARM_ROTATION_DEADBAND)
+            armRotation.setPower(power * clip(ARM_ROTATION_KP * error, -1.0, 1.0) * ARM_ROTATION_POWER_LIMIT_FACTOR);
 
      }
 
     /**
-     * Retrieve the current potentiometer value for the arm rotation angle
-     * This method can be used to display telemetry information during testing
+     * Retrieve the current potentiometer value for the arm rotation angle.
+     * This method can be used to display telemetry information during testing.
      */
     public double getArmRotation() {
         // return the current potentiometer value for the arm rotation angle
@@ -734,7 +758,7 @@ public class RobotHardware {
     }
 
     /**
-     * Rotate the arm to a specified position (potentiometer value)
+     * Rotate the arm to a specified position (potentiometer value).
      * This method should only be called from a LinerOpMode and implements its own
      * loop to cover the rotation of the arm the specified position using a PID controller with
      * the potentiometer value and specified voltage for determination of error.
@@ -745,7 +769,7 @@ public class RobotHardware {
         // ***** We need to handle making sure it's in the allowable range
 
         // Create a PID controller for the arm rotation position potentiometer
-        PIDController armRotationController = new PIDController(position, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP, ARM_ROTATION_KI, ARM_ROTATION_KD);
+        PIDController armRotationController = new PIDController(position, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP);
 
         // get the initial potentiometer value for the arm rotation angle
         double armPosition = armRotationPosition.getVoltage();
@@ -768,18 +792,35 @@ public class RobotHardware {
      }
 
     /**
-     * Power the motor to extend (+) or retract (-) the slide
+     * Power the motor to extend (+) or retract (-) the slide.
      * Apply the specified power to the arm extension motor while monitoring the
      * encoder position and keeping the arm within limits.
      * @param power power for the arm extension motor (-1.0 to 1.0)
      */
     public void extendArm(double power) {
-        armRotation.setPower(power * ARM_EXTENSION_POWER_FACTOR);
+
+        // Apply a proportional gain to the power as the position approaches the limits.
+        // NOTE: We can't use the PID controller class here since this function is called from
+        // teleop OpModes inside the loop() method and the PID controller can't be (easily)
+        // persisted across calls.
+        // NOTE: Another way to do this may be to set the motor in RUN_TO_POSITION mode and change
+        // the target position and or otherwise reset the operation when the sign of the power
+        // changes or is set to zero.
+        double currentPosition = armExtension.getCurrentPosition();
+        double error;
+
+        if (power < 0)
+            error = currentPosition - ARM_EXTENSION_MIN;
+        else
+            error = ARM_EXTENSION_MAX - currentPosition;
+
+        if (Math.abs(error) > ARM_EXTENSION_DEADBAND)
+            armRotation.setPower(power * clip(ARM_EXTENSION_KP * error, -1.0,1.0) * ARM_EXTENSION_POWER_LIMIT_FACTOR);
     }
 
     /**
-     * Retrieve the current arm extension position
-     * This method can be used to display telemetry information during testing
+     * Retrieve the current arm extension position.
+     * This method can be used to display telemetry information during testing.
      */
     public int getArmExtension() {
         // return the current potentiometer value for the arm rotation angle
@@ -787,7 +828,7 @@ public class RobotHardware {
     }
 
     /**
-     * Extend the arm to the specified position (encoder value)
+     * Extend the arm to the specified position (encoder value).
      * This method should only be called from a LinerOpMode and implements its own
      * loop to cover the extension of the arm the specified position using RUN_TO_ENCODER in the
      * arm extension motor (with built-in PID controller).
@@ -800,7 +841,7 @@ public class RobotHardware {
         armExtension.setTargetPosition(position);
 
         // Power the motor to extend the arm
-        armExtension.setPower(ARM_EXTENSION_POWER_FACTOR);
+        armExtension.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
 
         // loop until the arm extension has reached the desired position
         while (armExtension.isBusy()) {
@@ -817,7 +858,41 @@ public class RobotHardware {
     }
 
     /**
-     * Open the claw
+     * Reset the limits for arm extension from fully extended arm.
+     * This method should be called when the arm is fully extended, i.e. over limit.
+     */
+    public void resetArmLimitsExtended() {
+
+        // reset the encoder for the arm extension motor
+        armExtension.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+
+        // reset the limit values accordingly
+        ARM_EXTENSION_MAX = 0;
+        ARM_EXTENSION_MIN = -ARM_EXTENSION_LIMIT;
+
+        // set the mode back to RUN_USING_ENCODER
+        armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+    }
+
+    /**
+     * Reset the limits for arm extension from fully retracted arm.
+     * This method should be called when the arm is fully retracted, i.e., under limit.
+     */
+    public void resetArmLimitsRetracted() {
+
+        // reset the encoder for the arm extension motor
+        armExtension.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+
+        // reset the limit values accordingly
+        ARM_EXTENSION_MAX = ARM_EXTENSION_LIMIT;
+        ARM_EXTENSION_MIN = 0;
+
+        // set the mode back to RUN_USING_ENCODER
+        armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+    }
+
+    /**
+     * Open the claw.
      * @param wide true to open the claw to the wide position, false to open to the normal open position
      */
     public void openClaw(boolean wide) {
@@ -830,7 +905,7 @@ public class RobotHardware {
     }
 
     /**
-     * Close the claw
+     * Close the claw.
      * @param grip true to close the claw to the tight or "grip" position, false to close to the normal closed position
      */
     public void closeClaw(boolean grip) {
@@ -906,7 +981,7 @@ public class RobotHardware {
 }
 
 /**
- * PID Controller class for computing motor power during autonomous motion
+ * PID Controller class for computing motor power during autonomous motion.
  * NOTE: This can be made just a proportional controller ("P Controller") by only passing a
  * proportional (Kp) gain.
  */
