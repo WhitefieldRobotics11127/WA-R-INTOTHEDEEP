@@ -2,6 +2,8 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
@@ -15,6 +17,7 @@ import java.util.Timer;
  * OpMode to test/calibrate drivetrain and odometry
  */
 @TeleOp(name= "Drivetrain test/calibration", group="Test")
+//@Disabled
 public class MotionTest extends OpMode
 {
     // Create a RobotHardware object to be used to access robot hardware.
