@@ -2,6 +2,8 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
@@ -9,10 +11,13 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
+import java.util.Timer;
+
 /*
  * OpMode to test/calibrate drivetrain and odometry
  */
 @TeleOp(name= "Drivetrain test/calibration", group="Test")
+//@Disabled
 public class MotionTest extends OpMode
 {
     // Create a RobotHardware object to be used to access robot hardware.
@@ -25,7 +30,6 @@ public class MotionTest extends OpMode
 
     // Declare OpMode members.
     final private ElapsedTime runtime = new ElapsedTime();
-
     double speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
 
     /*
@@ -62,7 +66,7 @@ public class MotionTest extends OpMode
         // Set the initial position of the robot on the field
         // NOTE: There should be a "testing" position for running this opmode that is marked on the
         // field (e.g., with gaffers tape) so that the robot can be placed in the same position each
-        //time.
+        // time.
         robot.setFieldPosition(0, 0, 0);
     }
 
@@ -93,15 +97,29 @@ public class MotionTest extends OpMode
             speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
         }
 
-        // Use left joystick to go forward & strafe, and right joystick to rotate.
-        // Note that the robot.move() function takes values in FTC coordinate system values, where
-        // +x is forward, +y is left, and +yaw is counter-clockwise rotation.
-        double axial   = -gamepad1.left_stick_y;  // pushing stick forward gives negative value
-        double lateral =  -gamepad1.left_stick_x;  // pushing stick left gives negative value
-        double yaw     =  -gamepad1.right_stick_x;  // pushing stick left gives negative value
+        // if the d-pad buttons are presse, ignore the joystick input(s)
+        if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right) {
+            if(gamepad1.dpad_up && !lastGamepad1.dpad_up) {
+                robot.move(1, 0, 0, speedFactor);
+            } else if(gamepad1.dpad_down && !lastGamepad1.dpad_down) {
+                robot.move(-1, 0, 0, speedFactor);
+            } else if(gamepad1.dpad_left && !lastGamepad1.dpad_left) {
+                robot.move(0, 1, 0, speedFactor);
+            } else if(gamepad1.dpad_right && !lastGamepad1.dpad_right) {
+                robot.move(0, -1, 0, speedFactor);
+            }
+        } else {
 
-        // Send the power level to the wheels
-        robot.move(axial, lateral, yaw, speedFactor);
+            // Use left joystick to go forward & strafe, and right joystick to rotate.
+            // Note that the robot.move() function takes values in FTC coordinate system values, where
+            // +x is forward, +y is left, and +yaw is counter-clockwise rotation.
+            double axial = -gamepad1.left_stick_y;  // pushing stick forward gives negative value
+            double lateral = -gamepad1.left_stick_x;  // pushing stick left gives negative value
+            double yaw = -gamepad1.right_stick_x;  // pushing stick left gives negative value
+
+            // Send the power level to the wheels
+            robot.move(axial, lateral, yaw, speedFactor);
+        }
 
         // Save the current gamepad states
         lastGamepad1.copy(gamepad1);
@@ -110,8 +128,8 @@ public class MotionTest extends OpMode
         // Show the elapsed game time and odometry information
         telemetry.addData("Status", "Running (%s)", runtime.toString());
         telemetry.addData("Raw Encoders", "Left: %d, Right: %d, Aux: %d", robot.lastLeftEncoderPosition, robot.lastRightEncoderPosition, robot.lastAuxEncoderPosition);
-        telemetry.addData("Odometry", "x: %f mm, y: %f mm, hdg: %f °", robot.getOdometryX(), robot.getOdometryY() , robot.getOdometryHeading());
-        telemetry.addData("Field Position", "x: %f mm, y: %f mm, hdg: %f °", robot.getPosX(), robot.getPosY() , robot.getHeading(AngleUnit.DEGREES));
+        telemetry.addData("Odometry", "x: %f mm, y: %f mm, hdg: %f rad", robot.getOdometryX(), robot.getOdometryY() , robot.getOdometryHeading());
+        telemetry.addData("Field Position", "x: %f mm, y: %f mm, hdg: %f °", robot.getFieldPosX(), robot.getFieldPosY() , robot.getFieldHeading(AngleUnit.DEGREES));
     }
 
     /*
@@ -123,6 +141,11 @@ public class MotionTest extends OpMode
         // Stop the robot
         robot.stop();
 
+        // do final odometry update
+        robot.updateOdometry();
+
         telemetry.addData("Status", "Stopped. Total Runtime: (%s)", runtime.toString());
+        telemetry.addData("Odometry", "x: %f mm, y: %f mm, hdg: %f rad", robot.getOdometryX(), robot.getOdometryY() , robot.getOdometryHeading());
+        telemetry.addData("Field Position", "x: %f mm, y: %f mm, hdg: %f °", robot.getFieldPosX(), robot.getFieldPosY() , robot.getFieldHeading(AngleUnit.DEGREES));
     }
 }
