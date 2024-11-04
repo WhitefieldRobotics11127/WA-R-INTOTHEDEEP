@@ -287,10 +287,10 @@ public class RobotHardware {
 
 
         // Define arm and claw hardware instance variables
-        armExtension = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_extension");
-        armRotation = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_rotation");
-        armRotationPosition = myOpMode.hardwareMap.get(AnalogInput.class, "arm_position");
-        clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
+        //armExtension = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_extension");
+        //armRotation = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_rotation");
+        //armRotationPosition = myOpMode.hardwareMap.get(AnalogInput.class, "arm_position");
+        //clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
 
         // Initialize settings for arm and claw hardware
 
