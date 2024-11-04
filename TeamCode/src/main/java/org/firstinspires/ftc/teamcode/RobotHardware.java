@@ -35,7 +35,6 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.AnalogInput;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -67,11 +66,11 @@ public class RobotHardware {
     /** Initial (stowed) position for arm rotation (voltage). */
     public static final double ARM_ROTATION_MIN = 0.0;
     /** Fully rotated arm position (voltage). */
-    public static final double ARM_ROTATION_MAX = 0.0;
+    public static final double ARM_ROTATION_MAX = 15.0;
 
     // Encoder Limit for extension of arm.
     /** Encoder position for fully extended viper slide (arm) assuming fully retracted is 0. */
-    public static final int ARM_EXTENSION_LIMIT = 200000;
+    public static final int ARM_EXTENSION_LIMIT = 2000000;
 
     /* ----- Member variables (private so hidden from the calling OpMode) ----- */
 
@@ -141,7 +140,7 @@ public class RobotHardware {
     // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
     static final double ARM_ROTATION_DEADBAND =0.2; // Deadband range for arm rotation position in volts
     static final double ARM_ROTATION_TOLERANCE = 0.5; // Tolerance for arm rotation position in volts
-    static final double ARM_ROTATION_KP = 0.1; // Proportional gain for arm rotation position error
+    static final double ARM_ROTATION_KP = 1.0; // Proportional gain for arm rotation position error
 
     // Min and Max limits for encoder values for extension motor
     // NOTE: These values are not static or final because they may be swapped by the reset functions
@@ -156,7 +155,7 @@ public class RobotHardware {
 
     // Tolerances and proportional gain values for arm extension position controller. These need to be calibrated.
     static final int ARM_EXTENSION_DEADBAND = 500; // Deadband range for arm extension position in ticks (1/4 turn)
-    static final double ARM_EXTENSION_KP = 0.1; // Proportional gain for arm extension position error
+    static final double ARM_EXTENSION_KP = 1.0; // Proportional gain for arm extension position error
 
     /*
      * Parameter values for claw
