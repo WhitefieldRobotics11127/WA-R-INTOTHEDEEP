@@ -94,10 +94,18 @@ public class BucketAutoOpMode extends LinearOpMode {
         //
     }
     public void makeContact() {
-        if (opModeIsActive()
-            robot.turn(Math.PI/2, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-        // This will approach wall from bucket
-            robot.forward();
+        //turn to face blue wall
+        if(opModeIsActive())
+                robot.turn(3*(Math.PI)/4, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+        //move to box
+        if(opModeIsActive())
+                robot.forward(1500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+        //turn to face box
+        if(opModeIsActive())
+                robot.turn(Math.PI/2,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+        //go to box thing
+        if (opModeIsActive())
+            robot.forward(300,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
     }
     public void runOpMode() {
 
