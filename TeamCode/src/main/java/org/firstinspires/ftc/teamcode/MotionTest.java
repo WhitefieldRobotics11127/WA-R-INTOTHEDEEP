@@ -96,6 +96,7 @@ public class MotionTest extends OpMode
         if(gamepad1.a && !lastGamepad1.a) {
             speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
         }
+        //
 
         // if the d-pad buttons are presse, ignore the joystick input(s)
         if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right) {
