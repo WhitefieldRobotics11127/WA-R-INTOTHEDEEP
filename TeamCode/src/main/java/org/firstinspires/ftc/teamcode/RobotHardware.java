@@ -62,15 +62,27 @@ public class RobotHardware {
     /** Separate speed for Autonomous movement commands to use. */
     public static final double MOTOR_SPEED_FACTOR_AUTONOMOUS = 0.4;
 
-    // Limits for arm rotation (potentiometer voltage values)
-    /** Initial (stowed) position for arm rotation (voltage). */
-    public static final double ARM_ROTATION_MIN = 0.0;
-    /** Fully rotated arm position (voltage). */
-    public static final double ARM_ROTATION_MAX = 15.0;
+    // Allowable limits for arm rotation
+    // NOTE: These are [0, 1) within voltage rage of potentiometer
+    /** Initial (stowed) position for arm rotation (within 0.0 to 1.0 range). */
+    public static final double ARM_ROTATION_MIN = 0.3;
+    /** Fully rotated arm position (within 0.0 to 1.0 range). */
+    public static final double ARM_ROTATION_MAX = 0.7;
 
-    // Encoder Limit for extension of arm.
+    // Encoder limit for extension of arm.
     /** Encoder position for fully extended viper slide (arm) assuming fully retracted is 0. */
-    public static final int ARM_EXTENSION_LIMIT = 2000000;
+    public static final int ARM_EXTENSION_LIMIT = 2938;
+
+    // Servo positions for claw
+    // NOTE: these are [0, 1) within the min and max range set for the servo
+    /** Servo position for open claw. */
+    public static final double CLAW_SERVO_OPEN = 0.7;
+    /** Servo position for closed claw. */
+    public static final double CLAW_SERVO_CLOSE = 0.08;
+    /** Servo position for widest openining of claw. */
+    public static final double CLAW_SERVO_OPEN_WIDE = 0.9;
+    /** Servo position for tightly gripping claw. */
+    public static final double CLAW_SERVO_CLOSE_GRIP = 0.0;
 
     /* ----- Member variables (private so hidden from the calling OpMode) ----- */
 
@@ -132,15 +144,20 @@ public class RobotHardware {
     static final double PID_CONTROLLER_YAW_KI = 0.0; // Integral gain for yaw (turning) error
 
     /*
-     * Parameter values for arm (Viper-Slide).
+     * Parameter values for arm (Viper-slide) and claw.
      */
     // Limit the power to the rotation motor to prevent damage to the arm. This needs to be calibrated.
-    static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.5; // Factor to limit power to arm rotation motor
+    static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 1.0; // Factor to limit power to arm rotation motor
 
     // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
-    static final double ARM_ROTATION_DEADBAND =0.2; // Deadband range for arm rotation position in volts
-    static final double ARM_ROTATION_TOLERANCE = 0.5; // Tolerance for arm rotation position in volts
+    static final double ARM_ROTATION_DEADBAND = 0.02; // Deadband range for arm rotation position
+    static final double ARM_ROTATION_TOLERANCE = 0.05; // Tolerance for arm rotation position
     static final double ARM_ROTATION_KP = 1.0; // Proportional gain for arm rotation position error
+
+    // Maximum voltage from arm rotation potentiometer
+    // NOTE: this is set in init() and utilized to calculate an arm rotation position in the [0, 1)
+    // range.
+    double ARM_ROTATION_MAX_VOLTAGE;
 
     // Min and Max limits for encoder values for extension motor
     // NOTE: These values are not static or final because they may be swapped by the reset functions
@@ -151,19 +168,15 @@ public class RobotHardware {
     int ARM_EXTENSION_MIN = 0;
 
     // Limit the power to the extension motor to prevent damage to the arm. This needs to be calibrated.
-    static final double ARM_EXTENSION_POWER_LIMIT_FACTOR = 0.5; // Factor to limit power to arm extension motor
+    static final double ARM_EXTENSION_POWER_LIMIT_FACTOR = 0.7; // Factor to limit power to arm extension motor
 
     // Tolerances and proportional gain values for arm extension position controller. These need to be calibrated.
-    static final int ARM_EXTENSION_DEADBAND = 500; // Deadband range for arm extension position in ticks (1/4 turn)
-    static final double ARM_EXTENSION_KP = 1.0; // Proportional gain for arm extension position error
+    static final int ARM_EXTENSION_DEADBAND = 25; // Deadband range for arm extension position in ticks (1/4 turn)
+    static final double ARM_EXTENSION_KP = 0.00333; // Proportional gain for arm extension position error
 
-    /*
-     * Parameter values for claw
-     */
-    static final double CLAW_SERVO_OPEN = 0.5; // Servo value for open claw position
-    static final double CLAW_SERVO_CLOSE = 0.1; // Servo value for closed claw position
-    static final double CLAW_SERVO_OPEN_WIDE = 0.8; // Servo value for widest possible open claw position
-    static final double CLAW_SERVO_CLOSE_GRIP = 0.0; // Servo position for tightly gripping claw position
+    // Servo position limits for claw
+    static final double CLAW_SERVO_RANGE_MIN = 0.0;
+    static final double CLAW_SERVO_RANGE_MAX = 0.6;
 
     /*
      * Hardware objects for current robot hardware.
@@ -190,7 +203,7 @@ public class RobotHardware {
 
     private IMU imu; // IMU built into Rev Control Hub
 
-       /*
+    /*
      * Variables for tracking robot state     
      */
     // last read odometry deadwheel encoder positions - used to calculate encoder deltas since last
@@ -292,7 +305,22 @@ public class RobotHardware {
         //armRotationPosition = myOpMode.hardwareMap.get(AnalogInput.class, "arm_position");
         //clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
 
-        // Initialize settings for arm and claw hardware
+        // Initialize settings for viper-slide arm, arm rotation motor, and claw hardware
+        // Reset the encoder count to zero
+        // NOTE: the viper slide should be fully retracted before "Start" is pressed
+        armExtension.setDirection(DcMotorEx.Direction.REVERSE);
+        armExtension.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+
+        armRotation.setDirection(DcMotorEx.Direction.FORWARD);
+        armRotation.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+
+        // Get the maximum voltage from the arm rotation potentiometer for calculating arm rotation
+        // position in the [0, 1) range.
+        ARM_ROTATION_MAX_VOLTAGE = armRotationPosition.getMaxVoltage();
+
+        // Set a limited range for claw servo to prevent damage to the claw
+        clawServo.scaleRange(CLAW_SERVO_RANGE_MIN, CLAW_SERVO_RANGE_MAX);
 
         // Define IMU hardware instance variable
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
@@ -730,11 +758,12 @@ public class RobotHardware {
      * @param power power for the arm rotation motor (-1.0 to 1.0)
      */
      public void rotateArm(double power) {
+
          // Apply a proportional gain to the power as the position approaches the limits.
          // NOTE: We can't use the PID controller class here since this function is called from
          // teleop OpModes inside the loop() method and the PID controller can't be (easily)
          // persisted across calls
-         double currentPosition = armRotationPosition.getVoltage();
+         double currentPosition = armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
          double error;
 
          if (power < 0)
@@ -743,35 +772,45 @@ public class RobotHardware {
              error = ARM_ROTATION_MAX - currentPosition;
 
          if (Math.abs(error) > ARM_ROTATION_DEADBAND)
-            armRotation.setPower(power * clip(ARM_ROTATION_KP * error, -1.0, 1.0) * ARM_ROTATION_POWER_LIMIT_FACTOR);
-
+             armRotation.setPower(power * clip(ARM_ROTATION_KP * error, -1.0, 1.0) * ARM_ROTATION_POWER_LIMIT_FACTOR);
+         else
+             armRotation.setPower(0.0);
      }
 
     /**
-     * Retrieve the current potentiometer value for the arm rotation angle.
-     * This method can be used to display telemetry information during testing.
+     * Retrieve the current position value for the arm rotation angle (0.0 to 1.0).
      */
     public double getArmRotation() {
+        // return the current potentiometer value for the arm rotation angle
+        return armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
+    }
+
+    /**
+     * Retrieve raw voltage for arm rotation potentiometer (volts).
+     * This method can be used to display telemetry information during testing and calibration.
+     */
+    public double getArmRotationVoltage() {
         // return the current potentiometer value for the arm rotation angle
         return armRotationPosition.getVoltage();
     }
 
     /**
-     * Rotate the arm to a specified position (potentiometer value).
+     * Rotate the arm to a specified rotation position.
      * This method should only be called from a LinerOpMode and implements its own
      * loop to cover the rotation of the arm the specified position using a PID controller with
-     * the potentiometer value and specified voltage for determination of error.
-     * @param position the desired "angle" for the arm rotation motor, specified in potentiometer voltage value between ARM_ROTATION_MIN and ARM_ROTATION_MAX
+     * the potentiometer value and specified position for determination of error.
+     * @param position the desired "angle" for the arm rotation motor (ARM_ROTATION_MIN to ARM_ROTATION_MAX)
      */
     public void setArmRotation(double position) {
 
-        // ***** We need to handle making sure it's in the allowable range
+        // Make sure it's in the allowable range
+        position = clip(position, ARM_ROTATION_MIN, ARM_ROTATION_MAX);
 
         // Create a PID controller for the arm rotation position potentiometer
         PIDController armRotationController = new PIDController(position, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP);
 
         // get the initial potentiometer value for the arm rotation angle
-        double armPosition = armRotationPosition.getVoltage();
+        double armPosition = armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
 
         // Loop until the arm rotation has reached the desired position
         while (Math.abs(armPosition - position) > ARM_ROTATION_TOLERANCE && ((LinearOpMode) myOpMode).opModeIsActive()) {
@@ -780,13 +819,13 @@ public class RobotHardware {
             double power = clip(armRotationController.calculate(armPosition), -1.0, 1.0);
 
             // Rotate the arm
-            rotateArm(power);
+            armRotation.setPower(power * ARM_ROTATION_POWER_LIMIT_FACTOR);
 
-            // sleep for a short time to allow the arm to move
-            ((LinearOpMode) myOpMode).sleep(50);
+            // Wait for the motor to reach the target position
+            ((LinearOpMode) myOpMode).idle();
 
             // Update the potentiometer value for the arm rotation angle
-            armPosition = armRotationPosition.getVoltage();
+            armPosition = armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
         }
      }
 
@@ -814,7 +853,9 @@ public class RobotHardware {
             error = ARM_EXTENSION_MAX - currentPosition;
 
         if (Math.abs(error) > ARM_EXTENSION_DEADBAND)
-            armRotation.setPower(power * clip(ARM_EXTENSION_KP * error, -1.0,1.0) * ARM_EXTENSION_POWER_LIMIT_FACTOR);
+            armExtension.setPower(power * clip(ARM_EXTENSION_KP * error, -1.0,1.0) * ARM_EXTENSION_POWER_LIMIT_FACTOR);
+        else
+            armExtension.setPower(0.0);
     }
 
     /**
@@ -822,7 +863,7 @@ public class RobotHardware {
      * This method can be used to display telemetry information during testing.
      */
     public int getArmExtension() {
-        // return the current potentiometer value for the arm rotation angle
+        // return the current encoder value for the arm extension motor
         return armExtension.getCurrentPosition();
     }
 
@@ -831,7 +872,7 @@ public class RobotHardware {
      * This method should only be called from a LinerOpMode and implements its own
      * loop to cover the extension of the arm the specified position using RUN_TO_ENCODER in the
      * arm extension motor (with built-in PID controller).
-     * @param position the desired position for the extension, between ARM_EXTENSION_MIN and ARM_EXTENSION_MAX
+     * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
      */
     public void setArmExtension(int position) {
 
