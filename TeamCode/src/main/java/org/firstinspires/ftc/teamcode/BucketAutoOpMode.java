@@ -65,14 +65,15 @@ public class BucketAutoOpMode extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
 
     @Override
-
+// 0.5 = straight up
     public void dropInBucket() {
     //rotate arm upwards to field.
         if (opModeIsActive())
-            robot.rotateArm(1);
+            robot.setArmRotation(0.5);
     //extend arm
+        //limit = 2938
         if (opModeIsActive())
-            robot.extendArm(1);
+            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT);
     //approach bucket
         if (opModeIsActive())
             robot.forward(100, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
@@ -86,10 +87,10 @@ public class BucketAutoOpMode extends LinearOpMode {
             robot.forward(-100, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
     //retract the arm
         if (opModeIsActive())
-            robot.extendArm(-1);
+            robot.setArmExtension(0);
     //rotate arm back
         if (opModeIsActive())
-            robot.rotateArm(-1);
+            robot.setArmRotation(0);
             //
         //
     }
