@@ -79,8 +79,8 @@ public class RobotHardware {
     public static final double CLAW_SERVO_OPEN = 0.7;
     /** Servo position for closed claw. */
     public static final double CLAW_SERVO_CLOSE = 0.08;
-    /** Servo position for widest openining of claw. */
-    public static final double CLAW_SERVO_OPEN_WIDE = 0.9;
+    /** Servo position for widest opening of claw. */
+    public static final double CLAW_SERVO_OPEN_WIDE = 0.8;
     /** Servo position for tightly gripping claw. */
     public static final double CLAW_SERVO_CLOSE_GRIP = 0.0;
 
@@ -147,7 +147,7 @@ public class RobotHardware {
      * Parameter values for arm (Viper-slide) and claw.
      */
     // Limit the power to the rotation motor to prevent damage to the arm. This needs to be calibrated.
-    static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 1.0; // Factor to limit power to arm rotation motor
+    static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.8; // Factor to limit power to arm rotation motor
 
     // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
     static final double ARM_ROTATION_DEADBAND = 0.02; // Deadband range for arm rotation position
@@ -300,18 +300,24 @@ public class RobotHardware {
 
 
         // Define arm and claw hardware instance variables
-        //armExtension = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_extension");
-        //armRotation = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_rotation");
-        //armRotationPosition = myOpMode.hardwareMap.get(AnalogInput.class, "arm_position");
-        //clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
+        armExtension = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_extension");
+        armRotation = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_rotation");
+        armRotationPosition = myOpMode.hardwareMap.get(AnalogInput.class, "arm_rot_pos");
+        clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
 
-        // Initialize settings for viper-slide arm, arm rotation motor, and claw hardware
-        // Reset the encoder count to zero
-        // NOTE: the viper slide should be fully retracted before "Start" is pressed
+        // Initialize settings for viper-slide arm
         armExtension.setDirection(DcMotorEx.Direction.REVERSE);
+        armExtension.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+
+        // Reset the encoder count to zero and make sure the motor is stopped
+        // NOTE: the viper slide should be fully retracted before "Start" is pressed
         armExtension.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        armExtension.setPower(0.0);
+
+        // Set the run mode to RUN_USING_ENCODER
         armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
+        // Initialize settings for arm motor
         armRotation.setDirection(DcMotorEx.Direction.FORWARD);
         armRotation.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
@@ -319,6 +325,7 @@ public class RobotHardware {
         // position in the [0, 1) range.
         ARM_ROTATION_MAX_VOLTAGE = armRotationPosition.getMaxVoltage();
 
+        // Initialize settings for claw servo
         // Set a limited range for claw servo to prevent damage to the claw
         clawServo.scaleRange(CLAW_SERVO_RANGE_MIN, CLAW_SERVO_RANGE_MAX);
 
@@ -856,6 +863,41 @@ public class RobotHardware {
             armExtension.setPower(power * clip(ARM_EXTENSION_KP * error, -1.0,1.0) * ARM_EXTENSION_POWER_LIMIT_FACTOR);
         else
             armExtension.setPower(0.0);
+    }
+
+    /**
+     * Use the motor controllers RUN_TO_POSITION function to extend the arm to the specified
+     * position (encoder value).
+     * This function is for use in a Teleop OpMode and sets the target position and applies power.
+     * The calling OpMode must set the power on the motor back to zero when done (not busy).
+     * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
+     */
+    public void extendArmToPosition(int position) {
+
+        // set up the motor for run to position with the target encoder position
+        armExtension.setTargetPosition(position);
+        armExtension.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+
+        // Power the motor to extend the arm
+        armExtension.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
+
+    }
+
+    /**
+     * Return isBusy state of arm extension motor.
+     */
+    public boolean isArmExtensionBusy() {
+
+        return (armExtension.isBusy());
+    }
+
+    /**
+     * Stop the arm extension motor from moving. Should be called after call to extendArmToPosition
+     * is complete.
+     */public void stopArmExtension() {
+
+        armExtension.setPower(0.0);
+        armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
 
     /**
