@@ -64,14 +64,40 @@ public class RobotHardware {
 
     // Allowable limits for arm rotation
     // NOTE: These are [0, 1) within voltage rage of potentiometer
-    /** Fully upright arm is the "minimum" position (within 0.0 to 1.0 range). */
+    /** 
+     * Minimum safe rotational position for arm.
+     * NOTE: Fully upright arm is the "minimum" position (within 0.0 to 1.0 range) in order to 
+     * directly track with position sensor (potentiometer) values. 
+     */
     public static final double ARM_ROTATION_MIN = 0.09;
-    /** Fully rotated down arm is the "maximum" position (within 0.0 to 1.0 range). */
+    /**
+     * Maximum safe rotational position for arm.
+     * NOTE: Fully rotated down is the "maximum" position (within 0.0 to 1.0 range) in order to 
+     * directly track with position sensor (potentiometer) values. 
+     */
     public static final double ARM_ROTATION_MAX = 0.40;
 
     // Encoder limit for extension of arm.
     /** Encoder position for fully extended viper slide (arm) assuming fully retracted is 0. */
     public static final int ARM_EXTENSION_LIMIT = 2938;
+
+    // Min and max limits for encoder values for extension motor
+    // NOTE: These values are not static or final because they may be swapped by the reset functions
+    // depending on whether it is an extended reset or a retracted reset. The ARM_EXTENSION_MIN
+    // should initially be set to 0 and the ARM_EXTENSION_MAX should be set to ARM_EXTENSION_LIMIT
+    // based on a fully retracted position of the viper slide when the hardware is initialized.
+    /**
+     * Maximum safe value for arm extension position.
+     * NOTE: This may change from ARM_EXTENSION_LIMIT to 0 when arm extension encoder is reset 
+     * depending on the position of the arm (fully extended or fully retracted) at reset.
+     */    
+    public int ARM_EXTENSION_MAX = ARM_EXTENSION_LIMIT;
+    /**
+     * Minimum safe value for arm extension position.
+     * NOTE: This may change from 0 to -ARM_EXTENSION_LIMIT when arm extension encoder is reset 
+     * depending on the position of the arm (fully extended or fully retracted) at reset.
+     */
+    public int ARM_EXTENSION_MIN = 0;
 
     // Servo positions for claw
     // NOTE: these are [0, 1) within the min and max range set for the servo
@@ -130,7 +156,7 @@ public class RobotHardware {
     // to be calibrated:
     //  - For proportional (Kp) - start with reasonable distance (error) (in mm) where the robot should start
     // to slow down while approaching the destination and take the inverse. Then adjust up until the robot
-    // regularly osicillates around the target position.
+    // regularly oscillates around the target position.
     // - Once Kp is set, increase the Kd value from zero until the end behavior stabilizes.
     // - We will likely not use Ki values.
     static final double PID_CONTROLLER_X_KP = 0.0067; // Proportional gain for axial (forward) position error - start slowing down at 150 mm (~ 6 in.)
@@ -155,17 +181,11 @@ public class RobotHardware {
     static final double ARM_ROTATION_KP = 33.33; // Proportional gain for arm rotation position error
 
     // Maximum voltage from arm rotation potentiometer
-    // NOTE: this is set in init() and utilized to calculate an arm rotation position in the [0, 1)
+    // NOTE: this is set in init() from the getMaxVoltage() method on the potentiometer and
+    // utilized to calculate an arm rotation position in the [0, 1)
     // range.
     double ARM_ROTATION_MAX_VOLTAGE;
-
-    // Min and Max limits for encoder values for extension motor
-    // NOTE: These values are not static or final because they may be swapped by the reset functions
-    // depending on whether it is an extended reset or a retracted reset. The ARM_EXTENSION_MIN
-    // should initially be set to 0 and the ARM_EXTENSION_MAX should be set to ARM_EXTENSION_LIMIT
-    // based on a fully retracted position of the viper slide when the hardware is initialized.
-    int ARM_EXTENSION_MAX = ARM_EXTENSION_LIMIT;
-    int ARM_EXTENSION_MIN = 0;
+    
 
     // Limit the power to the extension motor to prevent damage to the arm. This needs to be calibrated.
     static final double ARM_EXTENSION_POWER_LIMIT_FACTOR = 0.7; // Factor to limit power to arm extension motor
@@ -188,10 +208,10 @@ public class RobotHardware {
     // because the built-in REV motor controllers support all the functionality of the DCMotorEx
     // class.
     private DcMotorEx leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive;  //  Motors for Mecanum drive
-    private DcMotorEx encoderRight, encoderLeft, encoderAux; // Encoders (deadwheels) for odometry
+    private DcMotorEx rightDeadwheelEncoder, leftDeadwheelEncoder, auxDeadwheelEncoder; // Encoders (deadwheels) for odometry
 
-    private DcMotorEx armRotation, armExtension; // Motors for Viper-Slide arm extension and rotation
-    private AnalogInput armRotationPosition; // Potentiometer for arm rotation position
+    private DcMotorEx armRotationMotor, armExtensionMotor; // Motors for Viper-Slide arm extension and rotation
+    private AnalogInput armRotationPositionSensor; // Potentiometer for arm rotation position
     private Servo clawServo; // Servo for claw open/close
 
     private VisionPortal visionPortal; // Used to manage video sources.
@@ -208,7 +228,7 @@ public class RobotHardware {
      */
     // last read odometry deadwheel encoder positions - used to calculate encoder deltas since last
     // call to updateOdometry()
-    // NOTE: ***** These are made public temporarily for initial testing/tuning purposes
+    // NOTE: ***** These are made public temporarily for initial testing/tuning purposes *****
     public int lastRightEncoderPosition, lastLeftEncoderPosition, lastAuxEncoderPosition;
 
     // translated x, y, and heading odometry counters in mm since last reset
@@ -289,44 +309,47 @@ public class RobotHardware {
         rightBackDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         // Define odometry encoder hardware instance variables
-        encoderRight = myOpMode.hardwareMap.get(DcMotorEx.class, "encoder_right");
-        encoderLeft = myOpMode.hardwareMap.get(DcMotorEx.class, "encoder_left");
-        encoderAux = myOpMode.hardwareMap.get(DcMotorEx.class, "encoder_aux");
+        rightDeadwheelEncoder = myOpMode.hardwareMap.get(DcMotorEx.class, "encoder_right");
+        leftDeadwheelEncoder = myOpMode.hardwareMap.get(DcMotorEx.class, "encoder_left");
+        auxDeadwheelEncoder = myOpMode.hardwareMap.get(DcMotorEx.class, "encoder_aux");
 
         // Reset the encoder values
-        encoderRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        encoderLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        encoderAux.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        rightDeadwheelEncoder.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        leftDeadwheelEncoder.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        auxDeadwheelEncoder.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
         // Define arm and claw hardware instance variables
-        // NOTE: The rotation motor uses the same hardware mapping as the auxiliary odometry encoder
-        armRotation = encoderAux; // Use the same hardware mapping as the auxiliary odometry encoder
-        armExtension = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_extension");
-        armRotationPosition = myOpMode.hardwareMap.get(AnalogInput.class, "arm_rot_pos");
+        // NOTE: ****** The rotation motor uses the same motor port as the auxiliary deadwheel encoder
+        armRotationMotor = auxDeadwheelEncoder; // Use the same hardware mapping as the auxiliary odometry encoder
+        armExtensionMotor = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_extension");
+        armRotationPositionSensor = myOpMode.hardwareMap.get(AnalogInput.class, "arm_rot_pos");
         clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
 
         // Initialize settings for viper-slide arm
-        armExtension.setDirection(DcMotorEx.Direction.REVERSE);
-        armExtension.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        armExtensionMotor.setDirection(DcMotorEx.Direction.REVERSE);
+        armExtensionMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
         // Reset the encoder count to zero and make sure the motor is stopped
         // NOTE: the viper slide should be fully retracted before "Start" is pressed
-        armExtension.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        armExtension.setPower(0.0);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        armExtensionMotor.setPower(0.0);
 
         // Set the run mode to RUN_USING_ENCODER
-        armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         // Initialize settings for arm motor
-        // NOTE: Run the motor in reverse direction so that power to the motor is positive when
+        // NOTE: Run the motor in forward direction so that power to the motor is positive when
         // tilting down. This allows the direction of rotation to track with the direction of the
         // rotation position sensor (potentiometer).
-        armRotation.setDirection(DcMotorEx.Direction.REVERSE);
-        armRotation.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        // NOTE: ***** Setting these values wrong can cause the arm and arm rotation hardware
+        // to be damaged because the arm can be over-rotated and the gearbox on the motor makes it
+        // very strong. *****
+        armRotationMotor.setDirection(DcMotorEx.Direction.FORWARD);
+        armRotationMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // Get the maximum voltage from the arm rotation potentiometer for calculating arm rotation
         // position in the [0, 1) range.
-        ARM_ROTATION_MAX_VOLTAGE = armRotationPosition.getMaxVoltage();
+        ARM_ROTATION_MAX_VOLTAGE = armRotationPositionSensor.getMaxVoltage();
 
         // Initialize settings for claw servo
         // Set a limited range for claw servo to prevent damage to the claw
@@ -452,9 +475,9 @@ public class RobotHardware {
         int oldAuxOdometryCounter = lastAuxEncoderPosition;
 
         // read new encoder values from odometry deadwheels and adjust for direction
-        lastRightEncoderPosition = encoderRight.getCurrentPosition() * DEADWHEEL_RIGHT_DIRECTION;
-        lastLeftEncoderPosition = encoderLeft.getCurrentPosition() * DEADWHEEL_LEFT_DIRECTION;
-        lastAuxEncoderPosition = encoderAux.getCurrentPosition() * DEADWHEEL_AUX_DIRECTION;
+        lastRightEncoderPosition = rightDeadwheelEncoder.getCurrentPosition() * DEADWHEEL_RIGHT_DIRECTION;
+        lastLeftEncoderPosition = leftDeadwheelEncoder.getCurrentPosition() * DEADWHEEL_LEFT_DIRECTION;
+        lastAuxEncoderPosition = auxDeadwheelEncoder.getCurrentPosition() * DEADWHEEL_AUX_DIRECTION;
 
         // calculate x, y, n1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       and theta (heading) deltas (robot perspective) since last measurement
         int dl = lastLeftEncoderPosition  - oldLeftCounter;
@@ -773,26 +796,30 @@ public class RobotHardware {
         // NOTE: We can't use the PID controller class here since this function is called from
         // teleop OpModes inside the loop() method and the PID controller can't be (easily)
         // persisted across calls
-        double currentPosition = armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
+        double currentPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
         double error;
 
-        if (power < 0.0)
+        if (power < 0.0) {
             error = currentPosition - ARM_ROTATION_MIN;
-        else
+        }
+        else {
             error = ARM_ROTATION_MAX - currentPosition;
+        }
 
-        //armRotation.setPower(power);
-        if (Math.abs(error) > ARM_ROTATION_DEADBAND)
-            armRotation.setPower(power * clip(ARM_ROTATION_KP * error, -1.0, 1.0) * ARM_ROTATION_POWER_LIMIT_FACTOR);
-        else
-            armRotation.setPower(0.0);
+        //armRotationMotor.setPower(power);
+        if (Math.abs(error) > ARM_ROTATION_DEADBAND) {
+            armRotationMotor.setPower(power * clip(ARM_ROTATION_KP * error, -1.0, 1.0) * ARM_ROTATION_POWER_LIMIT_FACTOR);
+        }
+        else {
+            armRotationMotor.setPower(0.0);
+        }
     }
 
     /**
      * Stop the arm from rotation.
      */
     public void stopArmRotation() {
-         armRotation.setPower(0.0);
+         armRotationMotor.setPower(0.0);
     }
 
     /**
@@ -801,16 +828,24 @@ public class RobotHardware {
     public double getArmRotation() {
         // return the current position values the arm calculated as a proportion of the maximum
         // voltage from the potentiometer
-        return armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
+        return armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
     }
 
     /**
      * Retrieve raw voltage for arm rotation potentiometer (volts).
      * This method can be used to display telemetry information during testing and calibration.
      */
-    public double getArmRotationVoltage() {
+    public double getArmRotationSensorVoltage() {
         // return the current potentiometer value for the arm rotation angle
-        return armRotationPosition.getVoltage();
+        return armRotationPositionSensor.getVoltage();
+    }
+
+    /**
+     * Retrieve current power setting for the arm rotation motor (-1.0 to 1.0).
+     * This method can be used to display telemetry information during testing and calibration.
+     */
+    public double getArmRotatioMotornPower() {
+        return armRotationMotor.getPower();
     }
 
     /**
@@ -829,7 +864,7 @@ public class RobotHardware {
         PIDController armRotationController = new PIDController(position, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP);
 
         // get the initial potentiometer value for the arm rotation angle
-        double armPosition = armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
+        double armPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
 
         // Loop until the arm rotation has reached the desired position
         while (Math.abs(armPosition - position) > ARM_ROTATION_TOLERANCE && ((LinearOpMode) myOpMode).opModeIsActive()) {
@@ -838,13 +873,13 @@ public class RobotHardware {
             double power = clip(armRotationController.calculate(armPosition), -1.0, 1.0);
 
             // Rotate the arm
-            armRotation.setPower(power * ARM_ROTATION_POWER_LIMIT_FACTOR);
+            armRotationMotor.setPower(power * ARM_ROTATION_POWER_LIMIT_FACTOR);
 
             // Wait for the motor to reach the target position
             ((LinearOpMode) myOpMode).idle();
 
             // Update the potentiometer value for the arm rotation angle
-            armPosition = armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
+            armPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
         }
      }
 
@@ -863,18 +898,18 @@ public class RobotHardware {
         // NOTE: Another way to do this may be to set the motor in RUN_TO_POSITION mode and change
         // the target position and or otherwise reset the operation when the sign of the power
         // changes or is set to zero.
-        double currentPosition = armExtension.getCurrentPosition();
+        double currentPosition = armExtensionMotor.getCurrentPosition();
         double error;
 
-        if (power < 0)
+        if (power < 0.0)
             error = currentPosition - ARM_EXTENSION_MIN;
         else
             error = ARM_EXTENSION_MAX - currentPosition;
 
         if (Math.abs(error) > ARM_EXTENSION_DEADBAND)
-            armExtension.setPower(power * clip(ARM_EXTENSION_KP * error, -1.0,1.0) * ARM_EXTENSION_POWER_LIMIT_FACTOR);
+            armExtensionMotor.setPower(power * clip(ARM_EXTENSION_KP * error, -1.0,1.0) * ARM_EXTENSION_POWER_LIMIT_FACTOR);
         else
-            armExtension.setPower(0.0);
+            armExtensionMotor.setPower(0.0);
     }
 
     /**
@@ -887,11 +922,11 @@ public class RobotHardware {
     public void extendArmToPosition(int position) {
 
         // set up the motor for run to position with the target encoder position
-        armExtension.setTargetPosition(position);
-        armExtension.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        armExtensionMotor.setTargetPosition(position);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
-        armExtension.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
+        armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
 
     }
 
@@ -900,7 +935,7 @@ public class RobotHardware {
      */
     public boolean isArmExtensionBusy() {
 
-        return (armExtension.isBusy());
+        return (armExtensionMotor.isBusy());
     }
 
     /**
@@ -908,8 +943,8 @@ public class RobotHardware {
      * is complete.
      */public void stopArmExtension() {
 
-        armExtension.setPower(0.0);
-        armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        armExtensionMotor.setPower(0.0);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
 
     /**
@@ -918,7 +953,7 @@ public class RobotHardware {
      */
     public int getArmExtension() {
         // return the current encoder value for the arm extension motor
-        return armExtension.getCurrentPosition();
+        return armExtensionMotor.getCurrentPosition();
     }
 
     /**
@@ -931,24 +966,24 @@ public class RobotHardware {
     public void setArmExtension(int position) {
 
         // set up the motor for run to position with the target encoder position
-        armExtension.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-        armExtension.setTargetPosition(position);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        armExtensionMotor.setTargetPosition(position);
 
         // Power the motor to extend the arm
-        armExtension.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
+        armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
 
         // loop until the arm extension has reached the desired position
-        while (armExtension.isBusy()) {
+        while (armExtensionMotor.isBusy()) {
 
             // Wait for the motor to reach the target position
             ((LinearOpMode) myOpMode).idle();
         }
 
         // stop the motor
-        armExtension.setPower(0.0);
+        armExtensionMotor.setPower(0.0);
 
         // reset the motor settings
-        armRotation.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
 
     /**
@@ -958,14 +993,14 @@ public class RobotHardware {
     public void resetArmLimitsExtended() {
 
         // reset the encoder for the arm extension motor
-        armExtension.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
         // reset the limit values accordingly
         ARM_EXTENSION_MAX = 0;
         ARM_EXTENSION_MIN = -ARM_EXTENSION_LIMIT;
 
         // set the mode back to RUN_USING_ENCODER
-        armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
 
     /**
@@ -975,14 +1010,14 @@ public class RobotHardware {
     public void resetArmLimitsRetracted() {
 
         // reset the encoder for the arm extension motor
-        armExtension.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
         // reset the limit values accordingly
         ARM_EXTENSION_MAX = ARM_EXTENSION_LIMIT;
         ARM_EXTENSION_MIN = 0;
 
         // set the mode back to RUN_USING_ENCODER
-        armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
 
     /**
@@ -1009,6 +1044,14 @@ public class RobotHardware {
             clawServo.setPosition(CLAW_SERVO_CLOSE_GRIP);
         else
             clawServo.setPosition(CLAW_SERVO_CLOSE);
+    }
+
+    /**
+     * Retrieve the current claw servo position setting (0.0 to 1.0).
+     * This method can be used to display telemetry information during testing and calibration.
+     */
+    public double getClawPosition() {
+        return clawServo.getPosition();
     }
 
     /* ----- Vision processing methods ----- */

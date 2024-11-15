@@ -137,7 +137,10 @@ public class ArmClawTest extends OpMode
         }
 
         // Right stick Y controls the arm rotation.
-        robot.rotateArm(gamepad1.right_stick_y);
+        // NOTE: ***** The y axis on the left and right sticks are reversed. Getting this wrong
+        // here could cause significant damage to the arm and arm rotation hardware because of the
+        // way the code in the RobotHardware class is written to protect from over-rotation. *****
+        robot.rotateArm(-gamepad1.right_stick_y);
 
         // Save the current gamepad states
         lastGamepad1.copy(gamepad1);
@@ -148,7 +151,9 @@ public class ArmClawTest extends OpMode
         telemetry.addData("Extension", "Position: %d", robot.getArmExtension());
         telemetry.addData("Extension", "Busy: %b", robot.isArmExtensionBusy());
         telemetry.addData("Rotation", "Position: %.2f", robot.getArmRotation());
-        telemetry.addData("Rotation", "Voltage: %.3f", robot.getArmRotationVoltage());
+        telemetry.addData("Rotation", "Voltage: %.3f", robot.getArmRotationSensorVoltage());
+        telemetry.addData("Rotation", "Power %.2f", robot.getArmRotatioMotornPower());
+        telemetry.addData("Claw", "Position: %.2f", robot.getClawPosition());
     }
 
     /*
