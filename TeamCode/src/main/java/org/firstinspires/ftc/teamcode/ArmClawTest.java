@@ -36,6 +36,9 @@ public class ArmClawTest extends OpMode
     // Declare OpMode members.
     final private ElapsedTime runtime = new ElapsedTime();
 
+    // for tracking position based arm extension operations
+    private boolean inArmExtensionOperation = false;
+
     /*
      * Code to run ONCE when the driver hits INIT
      */
@@ -86,78 +89,66 @@ public class ArmClawTest extends OpMode
             robot.closeClaw(false);
         else if (gamepad1.right_trigger < 0.4 && lastGamepad1.right_trigger >= 0.4)
             robot.openClaw(false);
-        }
 
-        // if the arm extension motor is busy extending arm, don't allow the driver to control it
-        if (!robot.isArmExtensionBusy()) {
+        // if the arm extension motor is busy extending arm to a position, check progress
+        // and reset flag if finished
+        if (inArmExtensionOperation) {
+            if (!robot.isArmExtensionBusy()) {
+                robot.stopArmExtension();
+                inArmExtensionOperation = false;
+            }
+        }
+        else {
 
             // Reset the encoder if the A button is pressed
             if (gamepad1.a) {
-                extensionMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                robot.resetArmLimitsRetracted();
             }
 
             // If a particular position for the arm extension is desired, set it using the
             // setArmExtension method
-            if(gamepad1.left_bumper && !lastGamepadState.left_bumper ||
-                    gamepad1.right_bumper && !lastGamepadState.right_bumper ||
-                    gamepad1.dpad_up && !lastGamepadState.dpad_up ||
-                    gamepad1.dpad_down && !lastGamepadState.dpad_down) {
+            if (gamepad1.left_bumper && !lastGamepad1.left_bumper ||
+                    gamepad1.right_bumper && !lastGamepad1.right_bumper ||
+                    gamepad1.dpad_up && !lastGamepad1.dpad_up ||
+                    gamepad1.dpad_down && !lastGamepad1.dpad_down) {
 
-                int pos = extensionMotor.getCurrentPosition();
+                int pos = robot.getArmExtension();
                 // bumpers move to the limits, dpad up and down move the arm extension by 300 ticks
-                if(gamepad1.left_bumper)
+                if (gamepad1.left_bumper)
                     pos = 0;
-                else if(gamepad1.right_bumper)
-                    pos = ARM_EXTENSION_LIMIT;
-                else if(gamepad1.dpad_up)
+                else if (gamepad1.right_bumper)
+                    pos = RobotHardware.ARM_EXTENSION_LIMIT;
+                else if (gamepad1.dpad_up)
                     pos += 300;
-                else if(gamepad1.dpad_down)
+                else if (gamepad1.dpad_down)
                     pos -= 300;
 
-                // run the motor to the desired position
-                extensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-                extensionMotor.setTargetPosition(clip(pos, 0, ARM_EXTENSION_LIMIT));
-                extensionMotor.setPower(EXTENSION_MOTOR_MAX_POWER);
+                // Set the arm extension to the specified position
+                robot.setArmExtension(pos);
+                inArmExtensionOperation = true;
             }
 
             // otherwise, get the arm movement from the left stick
             else {
 
                 // Left stick Y controls the arm extension.
-                double motorPower = -gamepad1.left_stick_y;
-                //extensionMotor.setPower(motorPower * EXTENSION_MOTOR_MAX_POWER);
-
-                // Use values from gamepad to set extension motor power applying a proportional gain to
-                // the power as the position approaches the limits.
-                double currentPosition = extensionMotor.getCurrentPosition();
-                double error;
-                if (motorPower < 0)
-                    error = currentPosition - 0;
-                else
-                    error = ARM_EXTENSION_LIMIT - currentPosition;
-
-                // reset the motor mode to run using encoder
-                extensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-
-                if (Math.abs(error) > ARM_EXTENSION_DEADBAND)
-                    extensionMotor.setPower(motorPower * clip(ARM_EXTENSION_KP * error, -1.0, 1.0) * EXTENSION_MOTOR_MAX_POWER);
-                else
-                    extensionMotor.setPower(0.0);
+                robot.extendArm(-gamepad1.left_stick_y);
             }
-
-            // Right stick Y controls the arm rotation.
-            rotationMotor.setPower(gamepad1.right_stick_y);
-
-            // store the gamepad state for the next loop
-            lastGamepadState.copy(gamepad1);
-
         }
+
+        // Right stick Y controls the arm rotation.
+        robot.rotateArm(gamepad1.right_stick_y);
+
+        // Save the current gamepad states
+        lastGamepad1.copy(gamepad1);
+        lastGamepad2.copy(gamepad2);
 
         // Show the elapsed game time and wheel power.
         telemetry.addData("Status", "Running...");
-        telemetry.addData("Encoder", "Position: " + extensionMotor.getCurrentPosition());
-        telemetry.addData("Motor", "Power %.2f", extensionMotor.getPower());
-        telemetry.addData("Servo", "Position %.2f", gripperServo.getPosition());
+        telemetry.addData("Extension", "Position: %d", robot.getArmExtension());
+        telemetry.addData("Extension", "Busy: %b", robot.isArmExtensionBusy());
+        telemetry.addData("Rotation", "Position: %.2f", robot.getArmRotation());
+        telemetry.addData("Rotation", "Voltage: %.3f", robot.getArmRotationVoltage());
     }
 
     /*
@@ -167,7 +158,9 @@ public class ArmClawTest extends OpMode
     public void stop() {
 
         // stop any arm extension motor movement
-        extensionMotor.setPower(0.0);
+        robot.stopArmExtension();
+        robot.stopArmRotation();
+
 
         // Tell the driver that the OpMode has stopped.
         telemetry.addData("Status", "Stopped");

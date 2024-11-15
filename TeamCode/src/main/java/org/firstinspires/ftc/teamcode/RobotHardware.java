@@ -64,10 +64,10 @@ public class RobotHardware {
 
     // Allowable limits for arm rotation
     // NOTE: These are [0, 1) within voltage rage of potentiometer
-    /** Initial (stowed) position for arm rotation (within 0.0 to 1.0 range). */
-    public static final double ARM_ROTATION_MIN = 0.3;
-    /** Fully rotated arm position (within 0.0 to 1.0 range). */
-    public static final double ARM_ROTATION_MAX = 0.7;
+    /** Fully upright arm is the "minimum" position (within 0.0 to 1.0 range). */
+    public static final double ARM_ROTATION_MIN = 0.09;
+    /** Fully rotated down arm is the "maximum" position (within 0.0 to 1.0 range). */
+    public static final double ARM_ROTATION_MAX = 0.40;
 
     // Encoder limit for extension of arm.
     /** Encoder position for fully extended viper slide (arm) assuming fully retracted is 0. */
@@ -152,7 +152,7 @@ public class RobotHardware {
     // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
     static final double ARM_ROTATION_DEADBAND = 0.02; // Deadband range for arm rotation position
     static final double ARM_ROTATION_TOLERANCE = 0.05; // Tolerance for arm rotation position
-    static final double ARM_ROTATION_KP = 1.0; // Proportional gain for arm rotation position error
+    static final double ARM_ROTATION_KP = 33.33; // Proportional gain for arm rotation position error
 
     // Maximum voltage from arm rotation potentiometer
     // NOTE: this is set in init() and utilized to calculate an arm rotation position in the [0, 1)
@@ -298,10 +298,10 @@ public class RobotHardware {
         encoderLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         encoderAux.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
-
         // Define arm and claw hardware instance variables
+        // NOTE: The rotation motor uses the same hardware mapping as the auxiliary odometry encoder
+        armRotation = encoderAux; // Use the same hardware mapping as the auxiliary odometry encoder
         armExtension = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_extension");
-        armRotation = myOpMode.hardwareMap.get(DcMotorEx.class, "arm_rotation");
         armRotationPosition = myOpMode.hardwareMap.get(AnalogInput.class, "arm_rot_pos");
         clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
 
@@ -318,7 +318,10 @@ public class RobotHardware {
         armExtension.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         // Initialize settings for arm motor
-        armRotation.setDirection(DcMotorEx.Direction.FORWARD);
+        // NOTE: Run the motor in reverse direction so that power to the motor is positive when
+        // tilting down. This allows the direction of rotation to track with the direction of the
+        // rotation position sensor (potentiometer).
+        armRotation.setDirection(DcMotorEx.Direction.REVERSE);
         armRotation.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // Get the maximum voltage from the arm rotation potentiometer for calculating arm rotation
@@ -759,36 +762,45 @@ public class RobotHardware {
     /* ----- Arm and claw control methods ----- */
 
     /**
-     * Power the motor to raise (+) or lower (-) the arm.
+     * Power the motor to raise (-) or lower (+) the arm.
      * Applies the specified power to the arm rotation motor while monitoring the
      * potentiometer position and keeping the arm within limits.
      * @param power power for the arm rotation motor (-1.0 to 1.0)
      */
-     public void rotateArm(double power) {
+    public void rotateArm(double power) {
 
-         // Apply a proportional gain to the power as the position approaches the limits.
-         // NOTE: We can't use the PID controller class here since this function is called from
-         // teleop OpModes inside the loop() method and the PID controller can't be (easily)
-         // persisted across calls
-         double currentPosition = armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
-         double error;
+        // Apply a proportional gain to the power as the position approaches the limits.
+        // NOTE: We can't use the PID controller class here since this function is called from
+        // teleop OpModes inside the loop() method and the PID controller can't be (easily)
+        // persisted across calls
+        double currentPosition = armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
+        double error;
 
-         if (power < 0)
-             error = currentPosition - ARM_ROTATION_MIN;
-         else
-             error = ARM_ROTATION_MAX - currentPosition;
+        if (power < 0.0)
+            error = currentPosition - ARM_ROTATION_MIN;
+        else
+            error = ARM_ROTATION_MAX - currentPosition;
 
-         if (Math.abs(error) > ARM_ROTATION_DEADBAND)
-             armRotation.setPower(power * clip(ARM_ROTATION_KP * error, -1.0, 1.0) * ARM_ROTATION_POWER_LIMIT_FACTOR);
-         else
-             armRotation.setPower(0.0);
-     }
+        //armRotation.setPower(power);
+        if (Math.abs(error) > ARM_ROTATION_DEADBAND)
+            armRotation.setPower(power * clip(ARM_ROTATION_KP * error, -1.0, 1.0) * ARM_ROTATION_POWER_LIMIT_FACTOR);
+        else
+            armRotation.setPower(0.0);
+    }
 
     /**
-     * Retrieve the current position value for the arm rotation angle (0.0 to 1.0).
+     * Stop the arm from rotation.
+     */
+    public void stopArmRotation() {
+         armRotation.setPower(0.0);
+    }
+
+    /**
+     * Retrieve the current position value for the arm rotation (0.0 to 1.0).
      */
     public double getArmRotation() {
-        // return the current potentiometer value for the arm rotation angle
+        // return the current position values the arm calculated as a proportion of the maximum
+        // voltage from the potentiometer
         return armRotationPosition.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
     }
 
