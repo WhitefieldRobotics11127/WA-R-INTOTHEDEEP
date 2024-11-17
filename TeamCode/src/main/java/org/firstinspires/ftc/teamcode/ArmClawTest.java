@@ -152,7 +152,7 @@ public class ArmClawTest extends OpMode
         telemetry.addData("Extension", "Busy: %b", robot.isArmExtensionBusy());
         telemetry.addData("Rotation", "Position: %.2f", robot.getArmRotation());
         telemetry.addData("Rotation", "Voltage: %.3f", robot.getArmRotationSensorVoltage());
-        telemetry.addData("Rotation", "Power %.2f", robot.getArmRotatioMotornPower());
+        telemetry.addData("Rotation", "Power %.2f", robot.getArmRotationMotorPower());
         telemetry.addData("Claw", "Position: %.2f", robot.getClawPosition());
     }
 

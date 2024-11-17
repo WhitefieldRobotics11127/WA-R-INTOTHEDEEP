@@ -30,21 +30,17 @@ package org.firstinspires.ftc.teamcode;
  * occasionally need to be cleaned up to remove unused imports.
  */
 import static com.qualcomm.robotcore.util.Range.clip;
-
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
+//import com.qualcomm.robotcore.hardware.IMU;
+//import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
-import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 /**
  * Hardware abstraction class for WA Robotics INTO THE DEEP competition robot
@@ -200,7 +196,7 @@ public class RobotHardware {
 
     /*
      * Hardware objects for current robot hardware.
-     * Any functionality or properties of any of these objects needed by opmodes will need to be
+     * Any functionality or properties of any of these objects needed by OpModes will need to be
      * exposed through methods added to this class (thus the "abstraction" layer).
      */
     // NOTE: We should use the DCMotorEx class for all motors connected to a REV Control Hub or
@@ -214,14 +210,7 @@ public class RobotHardware {
     private AnalogInput armRotationPositionSensor; // Potentiometer for arm rotation position
     private Servo clawServo; // Servo for claw open/close
 
-    private VisionPortal visionPortal; // Used to manage video sources.
-    //NOTE: For the current season, there are two cameras that may are used for AprilTag detection.
-    // There needs to be two separate AprilTagProcessor objects - one to handle each camera - because
-    // each will be built with different cameraPosition and cameraOrientation settings unigue to one
-    // of the cameras.
-    private AprilTagProcessor aprilTagCam1, aprilTagCam2; // Used for AprilTag detection through the two cameras
-
-    private IMU imu; // IMU built into Rev Control Hub
+    //private IMU imu; // IMU built into Rev Control Hub
 
     /*
      * Variables for tracking robot state     
@@ -302,7 +291,7 @@ public class RobotHardware {
         
         // ????? What do we need here (if anything) to ensure that the encoders are reset before we
         // set the run mode back to RUN_USING_ENCODER? A Thread.sleep() call, a myOpMode.wait()
-        // call, a myOpMode.idle() call (only for Linear opmodes), etc.?
+        // call, a myOpMode.idle() call (only for Linear OpModes), etc.?
         leftFrontDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER); // may not be needed
         leftBackDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         rightFrontDrive.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
@@ -356,17 +345,17 @@ public class RobotHardware {
         clawServo.scaleRange(CLAW_SERVO_RANGE_MIN, CLAW_SERVO_RANGE_MAX);
 
         // Define IMU hardware instance variable
-        imu = myOpMode.hardwareMap.get(IMU.class, "imu");
+        //imu = myOpMode.hardwareMap.get(IMU.class, "imu");
 
         // Set the IMU orientation on the robot
-        imu.initialize(
-                new IMU.Parameters(
-                        new RevHubOrientationOnRobot(
-                            RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
-                            RevHubOrientationOnRobot.UsbFacingDirection.UP
-                        )
-                )
-        );
+        //imu.initialize(
+        //        new IMU.Parameters(
+        //                new RevHubOrientationOnRobot(
+        //                    RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+        //                    RevHubOrientationOnRobot.UsbFacingDirection.UP
+        //                )
+        //        )
+        //);
     }
 
     /* ----- Low level motion methods for four-motor Mecanum drive train ----- */
@@ -409,7 +398,7 @@ public class RobotHardware {
      */
     public void move(double x, double y, double yaw, double speed) {
 
-        // Calculate the powers for the four motors attached to the mecanum wheels based on the
+        // Calculate the powers for the four motors attached to the Mecanum wheels based on the
         // specified x, y, yaw powers.
         double leftFrontPower = x - y - yaw;
         double rightFrontPower = x + y + yaw;
@@ -452,7 +441,7 @@ public class RobotHardware {
      * Read odometry wheel encoders and update the current odometry counters and field position
      * of the robot.
      * This method should be called at the beginning of each loop in an autonomous opMode and in any
-     * subloops in translation or rotation routines.
+     * sub-loops in translation or rotation routines.
      */
     public void updateOdometry() {
 
@@ -844,7 +833,7 @@ public class RobotHardware {
      * Retrieve current power setting for the arm rotation motor (-1.0 to 1.0).
      * This method can be used to display telemetry information during testing and calibration.
      */
-    public double getArmRotatioMotornPower() {
+    public double getArmRotationMotorPower() {
         return armRotationMotor.getPower();
     }
 
@@ -921,13 +910,15 @@ public class RobotHardware {
      */
     public void extendArmToPosition(int position) {
 
+        // make sure the position is within the allowable range
+        position = clip(position, ARM_EXTENSION_MIN, ARM_EXTENSION_MAX);
+
         // set up the motor for run to position with the target encoder position
         armExtensionMotor.setTargetPosition(position);
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
         armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
-
     }
 
     /**
@@ -1056,65 +1047,8 @@ public class RobotHardware {
 
     /* ----- Vision processing methods ----- */
 
-    private void initAprilTag() {
-
-        // Create the first AprilTag processor.
-        aprilTagCam1 = new AprilTagProcessor.Builder()
-
-            // The following default settings are available to un-comment and edit as needed.
-            //.setDrawAxes(false)
-            //.setDrawCubeProjection(false)
-            //.setDrawTagOutline(true)
-            //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
-            //.setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
-            //.setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-            //.setCameraPose(cameraPosition, cameraOrientation)
-
-            // == CAMERA CALIBRATION ==
-            // If you do not manually specify calibration parameters, the SDK will attempt
-            // to load a predefined calibration for your camera.
-            //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
-            // ... these parameters are fx, fy, cx, cy.
-
-            .build();
-
-        // Adjust Image Decimation to trade-off detection-range for detection-rate.
-        // eg: Some typical detection data using a Logitech C920 WebCam
-        // Decimation = 1 ..  Detect 2" Tag from 10 feet away at 10 Frames per second
-        // Decimation = 2 ..  Detect 2" Tag from 6  feet away at 22 Frames per second
-        // Decimation = 3 ..  Detect 2" Tag from 4  feet away at 30 Frames Per Second (default)
-        // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second (default)
-        // Note: Decimation can be changed on-the-fly to adapt during a match.
-        //aprilTag.setDecimation(3);
-
-        // Create the vision portal by using a builder.
-        VisionPortal.Builder builder = new VisionPortal.Builder();
-        //builder.setCamera(myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1"));
-
-        // Choose a camera resolution. Not all cameras support all resolutions.
-        //builder.setCameraResolution(new Size(640, 480));
-
-        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
-        //builder.enableLiveView(true);
-
-        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
-        //builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
-
-        // Choose whether or not LiveView stops if no processors are enabled.
-        // If set "true", monitor shows solid orange screen if no processors enabled.
-        // If set "false", monitor shows camera view without annotations.
-        //builder.setAutoStopLiveView(false);
-
-        // Set and enable the processor.
-        builder.addProcessor(aprilTagCam1);
-
-        // Build the Vision Portal, using the above settings.
-        visionPortal = builder.build();
-
-        // Disable or re-enable the aprilTag processor at any time.
-        //visionPortal.setProcessorEnabled(aprilTag, true);
-
-    }   // end method initAprilTag()
+    // TODO: Add AprilTag detection functionality here, including a method to initialize the
+    // VisionPortal and AprilTagProcessor objects
 }
 
 /**
