@@ -169,7 +169,7 @@ public class RobotHardware {
      * Parameter values for arm (Viper-slide) and claw.
      */
     // Limit the power to the rotation motor to prevent damage to the arm. This needs to be calibrated.
-    static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.8; // Factor to limit power to arm rotation motor
+    static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.6; // Factor to limit power to arm rotation motor
 
     // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
     static final double ARM_ROTATION_DEADBAND = 0.02; // Deadband range for arm rotation position
