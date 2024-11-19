@@ -71,7 +71,7 @@ public class RobotHardware {
      * NOTE: Fully rotated down is the "maximum" position (within 0.0 to 1.0 range) in order to 
      * directly track with position sensor (potentiometer) values. 
      */
-    public static final double ARM_ROTATION_MAX = 0.40;
+    public static final double ARM_ROTATION_MAX = 0.37;
 
     // Encoder limit for extension of arm.
     /** Encoder position for fully extended viper slide (arm) assuming fully retracted is 0. */
