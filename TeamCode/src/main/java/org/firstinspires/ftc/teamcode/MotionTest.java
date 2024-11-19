@@ -98,16 +98,18 @@ public class MotionTest extends OpMode
         }
         //
 
-        // if the d-pad buttons are presse, ignore the joystick input(s)
+        // If d-pad input provided, ignore joystick input(s)
         if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right) {
+
+            // Move the robot in the direction of the d-pad button pressed at precision speed
             if(gamepad1.dpad_up && !lastGamepad1.dpad_up) {
-                robot.move(1, 0, 0, speedFactor);
+                robot.move(1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
             } else if(gamepad1.dpad_down && !lastGamepad1.dpad_down) {
-                robot.move(-1, 0, 0, speedFactor);
+                robot.move(-1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
             } else if(gamepad1.dpad_left && !lastGamepad1.dpad_left) {
-                robot.move(0, 1, 0, speedFactor);
+                robot.move(0, 1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
             } else if(gamepad1.dpad_right && !lastGamepad1.dpad_right) {
-                robot.move(0, -1, 0, speedFactor);
+                robot.move(0, -1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
             }
         } else {
 
@@ -117,8 +119,6 @@ public class MotionTest extends OpMode
             double axial = -gamepad1.left_stick_y;  // pushing stick forward gives negative value
             double lateral = -gamepad1.left_stick_x;  // pushing stick left gives negative value
             double yaw = -gamepad1.right_stick_x;  // pushing stick left gives negative value
-
-            // Send the power level to the wheels
             robot.move(axial, lateral, yaw, speedFactor);
         }
 

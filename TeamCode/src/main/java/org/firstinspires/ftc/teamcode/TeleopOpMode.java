@@ -7,6 +7,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import java.util.HashMap;
+
 /*
  * Primary Teleop OpMode for the 2024-2025 INTO THE DEEP competition robot.
  * This OpMode is setup for two-controller (gamepad1 and gamepad2) operation of the robot and
@@ -45,6 +47,15 @@ public class TeleopOpMode extends OpMode
     //  - RobotHardware.MOTOR_SPEED_FACTOR_DAVIS: "Sprint" (fast) speed
     // This may also be displayed in telemetry data on the driver station.
     double speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
+
+    // A hashmap to store the speed factor names for display in telemetry data on the driver station.
+    static final private HashMap<Double, String> speedFactorNames;
+    static {
+        speedFactorNames = new HashMap<Double, String>();
+        speedFactorNames.put(RobotHardware.MOTOR_SPEED_FACTOR_NORMAL, "Normal");
+        speedFactorNames.put(RobotHardware.MOTOR_SPEED_FACTOR_PRECISE, "Precise");
+        speedFactorNames.put(RobotHardware.MOTOR_SPEED_FACTOR_DAVIS, "Davis");
+    }
 
     // Flag to indicate that the arm extension motor is in a RUN_TO_POSITION operation. This allows
     // a single button press to extend/retract the arm to a specific position without tying up the
@@ -97,7 +108,7 @@ public class TeleopOpMode extends OpMode
 
         // Setup the initial telemetry display for the driving team captain
         telemetry.addData("Status", "Running (%s)", runtime.toString());
-        telemetry.addData("Speed Factor", speedFactor);
+        telemetry.addData("Speed Factor", speedFactorNames.get(speedFactor));
         telemetry.addData("Arm Rotation Position", robot.getArmRotation());
         telemetry.addData("Arm Extension Position", robot.getArmExtension());
     }
@@ -129,13 +140,30 @@ public class TeleopOpMode extends OpMode
             speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_PRECISE;
         }
 
-        // Use left joystick to go forward & strafe, and right joystick to rotate.
-        // NOTE: the robot.move() function takes values in FTC coordinate system values, where
-        // +x is forward, +y is left, and +yaw is counter-clockwise rotation.
-        double axial = -gamepad1.left_stick_y;  // pushing stick forward gives negative value
-        double lateral = -gamepad1.left_stick_x;  // pushing stick left gives negative value
-        double yaw = -gamepad1.right_stick_x;  // pushing stick left gives negative value
-        robot.move(axial, lateral, yaw, speedFactor);
+        // If d-pad input provided, ignore joystick input(s)
+        if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right) {
+
+            // Move the robot in the direction of the d-pad button pressed at precision speed
+            if(gamepad1.dpad_up && !lastGamepad1.dpad_up) {
+                robot.move(1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            } else if(gamepad1.dpad_down && !lastGamepad1.dpad_down) {
+                robot.move(-1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            } else if(gamepad1.dpad_left && !lastGamepad1.dpad_left) {
+                robot.move(0, 1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            } else if(gamepad1.dpad_right && !lastGamepad1.dpad_right) {
+                robot.move(0, -1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            }
+
+        } else {
+
+            // Use left joystick to go forward & strafe, and right joystick to rotate.
+            // NOTE: the robot.move() function takes values in FTC coordinate system values, where
+            // +x is forward, +y is left, and +yaw is counter-clockwise rotation.
+            double axial = -gamepad1.left_stick_y;  // pushing stick forward gives negative value
+            double lateral = -gamepad1.left_stick_x;  // pushing stick left gives negative value
+            double yaw = -gamepad1.right_stick_x;  // pushing stick left gives negative value
+            robot.move(axial, lateral, yaw, speedFactor);
+        }
 
         // ***** Handle arm and claw control from Gamepad2 *****
 
@@ -205,9 +233,6 @@ public class TeleopOpMode extends OpMode
         // NOTE: The rotateArm() method takes positive values to lower the arm and negative values
         // to raise the arm. This is so that the power applied for the rotation tracks with the
         // values returned from the rotation position sensor (potentiometer).
-        // NOTE: ***** The y axis on the gamepad sticks are reversed. Getting this wrong here could
-        // cause significant damage to the arm and arm rotation hardware because of the way the
-        // code in the RobotHardware class is written to protect from over-rotation. *****
         robot.rotateArm(-gamepad2.right_stick_y);
 
         // Save the current gamepad states
@@ -216,7 +241,7 @@ public class TeleopOpMode extends OpMode
 
         // Update the telemetry information
         telemetry.addData("Status", "Running (%s)", runtime.toString());
-        telemetry.addData("Speed Factor", speedFactor);
+        telemetry.addData("Speed Factor", speedFactorNames.get(speedFactor));
         telemetry.addData("Arm Rotation Position", robot.getArmRotation());
         telemetry.addData("Arm Extension Position", robot.getArmExtension());
     }

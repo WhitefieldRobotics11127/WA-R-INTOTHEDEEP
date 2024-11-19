@@ -85,10 +85,10 @@ public class ArmClawTest extends OpMode
 
         // Right trigger controls the claw servo
         double servoPosition;
-        if (gamepad1.right_trigger > 0.4 && lastGamepad1.right_trigger <= 0.4)
-            robot.closeClaw(false);
-        else if (gamepad1.right_trigger < 0.4 && lastGamepad1.right_trigger >= 0.4)
-            robot.openClaw(false);
+        if (gamepad1.right_trigger > 0.4)
+            robot.closeClaw((gamepad1.left_trigger > 0.4));
+        else
+            robot.openClaw((gamepad1.left_trigger > 0.4));
 
         // if the arm extension motor is busy extending arm to a position, check progress
         // and reset flag if finished
@@ -137,9 +137,9 @@ public class ArmClawTest extends OpMode
         }
 
         // Right stick Y controls the arm rotation.
-        // NOTE: ***** The y axis on the left and right sticks are reversed. Getting this wrong
-        // here could cause significant damage to the arm and arm rotation hardware because of the
-        // way the code in the RobotHardware class is written to protect from over-rotation. *****
+        // NOTE: The rotateArm() method takes positive values to lower the arm and negative values
+        // to raise the arm. This is so that the power applied for the rotation tracks with the
+        // values returned from the rotation position sensor (potentiometer).
         robot.rotateArm(-gamepad1.right_stick_y);
 
         // Save the current gamepad states
