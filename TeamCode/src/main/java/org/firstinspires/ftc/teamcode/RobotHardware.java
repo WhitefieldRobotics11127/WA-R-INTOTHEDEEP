@@ -647,11 +647,14 @@ public class RobotHardware {
         PIDController yController = new PIDController(0.0, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
         PIDController yawController = new PIDController(0.0, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
 
+        // Flag to determine if called from a Liner OpMode
+        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
         // reset the odometry counters to zero
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (Math.abs(xOdometryCounter - distance) > MOVE_POSITION_TOLERANCE && ((LinearOpMode) myOpMode).opModeIsActive()) {
+        while (Math.abs(xOdometryCounter - distance) > MOVE_POSITION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the control output for each of the three controllers
             double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
@@ -661,10 +664,12 @@ public class RobotHardware {
             // Move the robot based on the calculated powers
             move(xPower, yPower, yawPower, speed);
 
-            // sleep for a short time to allow the robot to move
+            // If we are in a linear opmode, sleep for a short time to allow the robot to move
             // NOTE: This may not be necessary if the loop time is long because of the three PID
             // controller calculations.
-            ((LinearOpMode) myOpMode).sleep(50);
+            if (isLinearOpMode) {
+                ((LinearOpMode) myOpMode).sleep(100);
+            }
 
             // Update the odometry counters
             updateOdometry();
@@ -688,11 +693,14 @@ public class RobotHardware {
         PIDController yController = new PIDController(distance, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
         PIDController yawController = new PIDController(0.0, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
 
+        // Flag to determine if called from a Liner OpMode
+        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
         // reset the odometry counters to zero
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (Math.abs(yOdometryCounter - distance) > MOVE_POSITION_TOLERANCE && ((LinearOpMode) myOpMode).opModeIsActive()) {
+        while (Math.abs(yOdometryCounter - distance) > MOVE_POSITION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the control output for each of the three controllers
             double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
@@ -702,10 +710,12 @@ public class RobotHardware {
             // Move the robot based on the calculated powers
             move(xPower, yPower, yawPower, speed);
 
-            // sleep for a short time to allow the robot to move
+            // If we are in a linear opmode, sleep for a short time to allow the robot to move
             // NOTE: This may not be necessary if the loop time is long because of the three PID
             // controller calculations.
-            ((LinearOpMode) myOpMode).sleep(50);
+            if (isLinearOpMode) {
+                ((LinearOpMode) myOpMode).sleep(100);
+            }
 
             // Update the odometry counters
             updateOdometry();
@@ -729,11 +739,14 @@ public class RobotHardware {
         PIDController yController = new PIDController(0.0, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
         PIDController yawController = new PIDController(angle, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
 
+        // Flag to determine if called from a Liner OpMode
+        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
         // reset the odometry counters to zero
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (Math.abs(headingOdometryCounter - angle) > ROTATE_HEADING_TOLERANCE && ((LinearOpMode) myOpMode).opModeIsActive()) {
+        while (Math.abs(headingOdometryCounter - angle) > ROTATE_HEADING_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the control output for each of the three controllers
             double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
@@ -743,10 +756,12 @@ public class RobotHardware {
             // Move the robot based on the calculated powers
             move(xPower, yPower, yawPower, speed);
 
-            // sleep for a short time to allow the robot to move
+            // If we are in a linear opmode, sleep for a short time to allow the robot to move
             // NOTE: This may not be necessary if the loop time is long because of the three PID
             // controller calculations.
-            ((LinearOpMode) myOpMode).sleep(50);
+            if (isLinearOpMode) {
+                ((LinearOpMode) myOpMode).sleep(100);
+            }
 
             // Update the odometry counters
             updateOdometry();
@@ -846,6 +861,9 @@ public class RobotHardware {
      */
     public void setArmRotation(double position) {
 
+        // Flag to determine if called from a Liner OpMode
+        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
         // Make sure it's in the allowable range
         position = clip(position, ARM_ROTATION_MIN, ARM_ROTATION_MAX);
 
@@ -856,7 +874,7 @@ public class RobotHardware {
         double armPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
 
         // Loop until the arm rotation has reached the desired position
-        while (Math.abs(armPosition - position) > ARM_ROTATION_TOLERANCE && ((LinearOpMode) myOpMode).opModeIsActive()) {
+        while (Math.abs(armPosition - position) > ARM_ROTATION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the voltage output for the arm rotation motor
             double power = clip(armRotationController.calculate(armPosition), -1.0, 1.0);
@@ -864,8 +882,10 @@ public class RobotHardware {
             // Rotate the arm
             armRotationMotor.setPower(power * ARM_ROTATION_POWER_LIMIT_FACTOR);
 
-            // Wait for the motor to reach the target position
-            ((LinearOpMode) myOpMode).idle();
+            // Give the arm some time to move
+            if (isLinearOpMode) {
+                ((LinearOpMode) myOpMode).sleep(100);
+            }
 
             // Update the potentiometer value for the arm rotation angle
             armPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
@@ -956,9 +976,12 @@ public class RobotHardware {
      */
     public void setArmExtension(int position) {
 
+        // Flag to determine if called from a Liner OpMode
+        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
         // set up the motor for run to position with the target encoder position
-        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
         armExtensionMotor.setTargetPosition(position);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
         armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
@@ -967,7 +990,8 @@ public class RobotHardware {
         while (armExtensionMotor.isBusy()) {
 
             // Wait for the motor to reach the target position
-            ((LinearOpMode) myOpMode).idle();
+            if (isLinearOpMode)
+                ((LinearOpMode) myOpMode).idle();
         }
 
         // stop the motor

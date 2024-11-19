@@ -184,7 +184,7 @@ public class TeleopOpMode extends OpMode
                     pos = robot.ARM_EXTENSION_MAX;
                 else if (gamepad2.dpad_up)
                     pos += 600;
-                else if (gamepad1.dpad_down)
+                else if (gamepad2.dpad_down)
                     pos -= 600;
 
                 // Set the arm extension to the specified position
@@ -196,7 +196,7 @@ public class TeleopOpMode extends OpMode
             else {
 
                 // Left stick Y controls the arm extension.
-                robot.extendArm(-gamepad1.left_stick_y);
+                robot.extendArm(-gamepad2.left_stick_y);
             }
         }
 
@@ -208,7 +208,7 @@ public class TeleopOpMode extends OpMode
         // NOTE: ***** The y axis on the gamepad sticks are reversed. Getting this wrong here could
         // cause significant damage to the arm and arm rotation hardware because of the way the
         // code in the RobotHardware class is written to protect from over-rotation. *****
-        robot.rotateArm(-gamepad1.right_stick_y);
+        robot.rotateArm(-gamepad2.right_stick_y);
 
         // Save the current gamepad states
         lastGamepad1.copy(gamepad1);
