@@ -143,7 +143,7 @@ public class TeleopOpMode extends OpMode
         // If d-pad input provided, ignore joystick input(s)
         if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right) {
 
-            // Move the robot in the direction of the d-pad button pressed at precision speed
+            // Move the robot in the direction of the d-pad button pressed at 1/2 precision speed
             if(gamepad1.dpad_up && !lastGamepad1.dpad_up) {
                 robot.move(1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE * 0.5);
             } else if(gamepad1.dpad_down && !lastGamepad1.dpad_down) {
