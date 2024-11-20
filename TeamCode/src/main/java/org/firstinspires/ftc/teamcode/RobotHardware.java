@@ -65,13 +65,13 @@ public class RobotHardware {
      * NOTE: Fully upright arm is the "minimum" position (within 0.0 to 1.0 range) in order to 
      * directly track with position sensor (potentiometer) values. 
      */
-    public static final double ARM_ROTATION_MIN = 0.09;
+    public static final double ARM_ROTATION_MIN = 0.1;
     /**
      * Maximum safe rotational position for arm.
      * NOTE: Fully rotated down is the "maximum" position (within 0.0 to 1.0 range) in order to 
      * directly track with position sensor (potentiometer) values. 
      */
-    public static final double ARM_ROTATION_MAX = 0.37;
+    public static final double ARM_ROTATION_MAX = 0.39;
 
     // Encoder limit for extension of arm.
     /** Encoder position for fully extended viper slide (arm) assuming fully retracted is 0. */
@@ -131,7 +131,7 @@ public class RobotHardware {
      */
     static final int DEADWHEEL_LEFT_DIRECTION = 1; // Allows for adjustment of + direction of left encoder - should be installed front to back
     static final int DEADWHEEL_RIGHT_DIRECTION = -1; // Allows for adjustment of + direction of right encoder - should be installed front to back
-    static final int DEADWHEEL_AUX_DIRECTION = 1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
+    static final int DEADWHEEL_AUX_DIRECTION = -1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
     // The following values were calibrated for the unladen (no arm/claw assembly) robot on 10/29/2024
     static final double DEADWHEEL_MM_PER_TICK = 0.07512; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
     static final double DEADWHEEL_FORWARD_OFFSET = -106.0; //forward offset (length B) of aux deadwheel from robot center of rotation in MM (negative if behind)
