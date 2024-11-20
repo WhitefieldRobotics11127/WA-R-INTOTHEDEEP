@@ -98,11 +98,11 @@ public class RobotHardware {
     // Servo positions for claw
     // NOTE: these are [0, 1) within the min and max range set for the servo
     /** Servo position for open claw. */
-    public static final double CLAW_SERVO_OPEN = 0.7;
+    public static final double CLAW_SERVO_OPEN = 0.6;
     /** Servo position for closed claw. */
     public static final double CLAW_SERVO_CLOSE = 0.08;
     /** Servo position for widest opening of claw. */
-    public static final double CLAW_SERVO_OPEN_WIDE = 0.8;
+    public static final double CLAW_SERVO_OPEN_WIDE = 0.75;
     /** Servo position for tightly gripping claw. */
     public static final double CLAW_SERVO_CLOSE_GRIP = 0.0;
 
@@ -334,6 +334,7 @@ public class RobotHardware {
         // to be damaged because the arm can be over-rotated and the gearbox on the motor makes it
         // very strong. *****
         armRotationMotor.setDirection(DcMotorEx.Direction.FORWARD);
+        armRotationMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         armRotationMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // Get the maximum voltage from the arm rotation potentiometer for calculating arm rotation
