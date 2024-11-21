@@ -16,7 +16,7 @@ import java.util.HashMap;
  */
 @TeleOp(name= "Two-controller Teleop", group="Competition")
 //@Disabled
-public class TeleopOpMode extends OpMode
+public class TeleopOdometry extends OpMode
 {
     // Create a RobotHardware object to be used to access robot hardware.
     // All of the methods and properties of the RobotHardware class should be accessed via the
@@ -70,6 +70,10 @@ public class TeleopOpMode extends OpMode
         // Initialize the robot hardware through the RobotHardware class.
         robot.init();
 
+        // We need a way to retrieve the current Field Position from the Autonomous OpMode and
+        // set it here.
+        //robot.setFieldPosition(0, 0, 0);
+
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Hardware Initialized");
     }
@@ -90,9 +94,8 @@ public class TeleopOpMode extends OpMode
         // reset the runtime counter
         runtime.reset();
 
-        // If we are using any functions that require odometry tracking, we need to reset the
-        // odometry counters to 0 robot.resetOdometryCounters().
-        //robot.resetOdometryCounters();
+        // Reset the odometry counters to 0.
+        robot.resetOdometryCounters();
 
         // If we are wanting to set the robot's position on the field, we can do that here with a
         // call to robot.setFieldPosition(). However, we really wouldn't know the robot's position
@@ -119,7 +122,15 @@ public class TeleopOpMode extends OpMode
     @Override
     public void loop() {
 
+        // update the odometry for the robot
+        robot.updateOdometry();
+
         // ***** Handle movement control from Gamepad1 *****
+
+        // Reset odometry to zero if the Y button is pressed
+        if (gamepad1.y && !lastGamepad1.y) {
+            robot.resetOdometryCounters();
+        }
 
         // Set the current speedFactor from button presses on the first gamepad:
         // A: Normal speed
@@ -237,6 +248,8 @@ public class TeleopOpMode extends OpMode
         // Update the telemetry information
         telemetry.addData("Status", "Running (%s)", runtime.toString());
         telemetry.addData("Speed Factor", speedFactorNames.get(speedFactor));
+        telemetry.addData("Odometry", "X: %.1f  Y: %.1f  Theta: %.3f",
+                robot.getOdometryX(), robot.getOdometryY(), robot.getOdometryHeading());
         telemetry.addData("Arm Rotation Position", robot.getArmRotation());
         telemetry.addData("Arm Extension Position", robot.getArmExtension());
     }

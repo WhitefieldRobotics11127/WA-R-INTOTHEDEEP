@@ -133,7 +133,7 @@ public class RobotHardware {
     static final int DEADWHEEL_RIGHT_DIRECTION = -1; // Allows for adjustment of + direction of right encoder - should be installed front to back
     static final int DEADWHEEL_AUX_DIRECTION = -1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
     // The following values were calibrated for the unladen (no arm/claw assembly) robot on 10/29/2024
-    static final double DEADWHEEL_MM_PER_TICK = 0.07512; // MM per encoder tick (48MM diameter wheel @ 2000 ticks per revolution)
+    static final double DEADWHEEL_MM_PER_TICK = 0.07512; // MM per encoder tick (initially calculated 48MM diameter wheel @ 2000 ticks per revolution)
     static final double DEADWHEEL_FORWARD_OFFSET = -106.0; //forward offset (length B) of aux deadwheel from robot center of rotation in MM (negative if behind)
     static final double DEADWHEEL_TRACKWIDTH = 308.4; // distance (length L) between left and right deadwheels in MM
 
@@ -217,7 +217,7 @@ public class RobotHardware {
      */
     // last read odometry deadwheel encoder positions - used to calculate encoder deltas since last
     // call to updateOdometry()
-    // NOTE: ***** These are made public temporarily for initial testing/tuning purposes *****
+    // ***** NOTE: These are made public temporarily for initial testing/tuning purposes *****
     public int lastRightEncoderPosition, lastLeftEncoderPosition, lastAuxEncoderPosition;
 
     // translated x, y, and heading odometry counters in mm since last reset
@@ -334,7 +334,7 @@ public class RobotHardware {
         // to be damaged because the arm can be over-rotated and the gearbox on the motor makes it
         // very strong. *****
         armRotationMotor.setDirection(DcMotorEx.Direction.FORWARD);
-        armRotationMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        //armRotationMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         armRotationMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // Get the maximum voltage from the arm rotation potentiometer for calculating arm rotation
@@ -746,8 +746,7 @@ public class RobotHardware {
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
 
-        // Update telemetry with current heading
-        // NOTE: This is for testing purposes only and should be removed in final code
+        // ****** NOTE: This is for testing purposes only and should be removed in final code
         myOpMode.telemetry.addData("Requested Heading", angle);
         myOpMode.telemetry.addData("Current Heading", getFieldHeading());
         myOpMode.telemetry.update();
@@ -780,8 +779,7 @@ public class RobotHardware {
             // Update the odometry counters
             updateOdometry();
 
-            // Update telemetry with current heading
-            // NOTE: This is for testing purposes only and should be removed in final code
+            // ***** NOTE: This is for testing purposes only and should be removed in final code
             myOpMode.telemetry.addData("Requested Heading", angle);
             myOpMode.telemetry.addData("Current Heading", getFieldHeading());
             myOpMode.telemetry.update();
