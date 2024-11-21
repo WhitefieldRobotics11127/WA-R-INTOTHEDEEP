@@ -71,17 +71,17 @@ public class BucketAutoOpMode extends LinearOpMode {
         if (opModeIsActive())
             robot.setArmRotation(0.5);
     //extend arm
-        //limit = 2938
         if (opModeIsActive())
-            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT);
+            robot.setArmExtension(robot.ARM_EXTENSION_MAX);
     //approach bucket
         if (opModeIsActive())
             robot.forward(100, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
     //release claw to drop block and close claw
         if (opModeIsActive())
             robot.openClaw(true);
+        //extend arm
         if (opModeIsActive())
-            robot.closeClaw(false);
+            robot.setArmExtension(robot.ARM_EXTENSION_MAX);
     //the Scoot!
         if (opModeIsActive())
             robot.forward(-100, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
@@ -114,13 +114,16 @@ public class BucketAutoOpMode extends LinearOpMode {
         // initialize all the hardware, using the hardware class. See how clean and simple this is?
         robot.init();
 
+        robot.closeClaw(true);
+
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
-
-        //update telemetry
         telemetry.update();
+
         // Wait for the game to start (driver presses START)
         waitForStart();
+
+        // Reset the runtime timer
         runtime.reset();
 
         // run until the end of the match (driver presses STOP)

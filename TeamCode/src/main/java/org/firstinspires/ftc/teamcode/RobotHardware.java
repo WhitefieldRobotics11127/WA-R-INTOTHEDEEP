@@ -228,7 +228,7 @@ public class RobotHardware {
     // Current robot position (x,y, heading) in field coordinate system
     // NOTE: this is updated by the updateOdometry() method and used for translation and/or rotation
     // to field coordinates
-    private Pose2D currentFieldPosition;
+    private Pose2D currentFieldPosition = new Pose2D(DistanceUnit.MM, 0,0,AngleUnit.RADIANS,0);
 
     // keep a reference to the calling opmode so that we have access to hardwareMap and other
     // properties and statuses from the running opmode.
