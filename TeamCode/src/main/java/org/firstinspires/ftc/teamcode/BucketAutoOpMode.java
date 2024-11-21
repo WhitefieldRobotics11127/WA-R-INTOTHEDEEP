@@ -133,7 +133,7 @@ public class BucketAutoOpMode extends LinearOpMode {
             robot.turn(Math.PI/2,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         if (opModeIsActive())
             //move toward bucket wall
-            robot.forward(1400,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         if (opModeIsActive())
             //rotate toward the bucket
             robot.turn(Math.PI/4,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);

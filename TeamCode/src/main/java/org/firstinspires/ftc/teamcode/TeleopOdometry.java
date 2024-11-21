@@ -14,7 +14,7 @@ import java.util.HashMap;
  * This OpMode is setup for two-controller (gamepad1 and gamepad2) operation of the robot and
  * does not support any
  */
-@TeleOp(name= "Two-controller Teleop", group="Competition")
+@TeleOp(name= "Odometry-enabled Teleop", group="Test")
 //@Disabled
 public class TeleopOdometry extends OpMode
 {
@@ -72,7 +72,9 @@ public class TeleopOdometry extends OpMode
 
         // We need a way to retrieve the current Field Position from the Autonomous OpMode and
         // set it here.
-        //robot.setFieldPosition(0, 0, 0);
+        // NOTE: We need to set it to something because the get methods will fail if the object
+        // is not initialized. Should be fixed in RobotHardware class at some point.
+        robot.setFieldPosition(0, 0, 0);
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Hardware Initialized");
