@@ -126,6 +126,11 @@ public class TeleopOpMode extends OpMode
 
         // ***** Handle movement control from Gamepad1 *****
 
+        // Reset odometry to zero if the Y button is pressed
+        if (gamepad1.y && !lastGamepad1.y) {
+            robot.resetOdometryCounters();
+        }
+
         // Set the current speedFactor from button presses on the first gamepad:
         // A: Normal speed
         // B: Precise speed
@@ -242,6 +247,8 @@ public class TeleopOpMode extends OpMode
         // Update the telemetry information
         telemetry.addData("Status", "Running (%s)", runtime.toString());
         telemetry.addData("Speed Factor", speedFactorNames.get(speedFactor));
+        telemetry.addData("Odometry", "X: %.1f  Y: %.1f  Theta: %.3f",
+                robot.getOdometryX(), robot.getOdometryY(), robot.getOdometryHeading());
         telemetry.addData("Arm Rotation Position", robot.getArmRotation());
         telemetry.addData("Arm Extension Position", robot.getArmExtension());
     }

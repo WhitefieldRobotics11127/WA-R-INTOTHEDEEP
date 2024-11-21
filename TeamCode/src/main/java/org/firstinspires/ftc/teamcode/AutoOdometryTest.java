@@ -33,7 +33,7 @@ public class AutoOdometryTest extends LinearOpMode {
         robot.init();
 
         // Set the initial field position of the robot
-        robot.setFieldPosition(-1050,1130,0);
+        robot.setFieldPosition(-1050,-1275,0);
 
         // Update the status in telemetry
         telemetry.addData("Status", "Initialized");
@@ -55,7 +55,7 @@ public class AutoOdometryTest extends LinearOpMode {
 
         // Move forward 2500 mm
         if (opModeIsActive())
-            robot.forward(2500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(2000,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
         // Strafe left 2000 mm
         if (opModeIsActive())
@@ -76,7 +76,7 @@ public class AutoOdometryTest extends LinearOpMode {
         // Move forward 2500 mm - Robot should end up back in the test square facing the opposite
         // direction from the start position. :)
         if (opModeIsActive())
-            robot.forward(2500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(2000,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
         // Stop the robot - just in case
         robot.stop();

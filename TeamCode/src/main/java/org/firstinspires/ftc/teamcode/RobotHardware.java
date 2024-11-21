@@ -143,10 +143,10 @@ public class RobotHardware {
      */
     // Tolerance values for closed-loop controllers for use in translate and rotate commands
     static final double MOVE_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
-    static final double ROTATE_HEADING_TOLERANCE = 0.03489; // Tolerance for heading in radians (~2 degrees)
+    static final double ROTATE_HEADING_TOLERANCE = 0.0873; // Tolerance for heading in radians (~5 degrees)
     static final double PID_CONTROLLER_X_DEADBAND = 5.0; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
     static final double PID_CONTROLLER_Y_DEADBAND = 5.0; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
-    static final double PID_CONTROLLER_YAW_DEADBAND = 0.02; // Deadband range for Yaw power calculation. Should be less than ROTATE_HEADING_TOLERANCE
+    static final double PID_CONTROLLER_YAW_DEADBAND = 0.04; // Deadband range for Yaw power calculation. Should be less than ROTATE_HEADING_TOLERANCE
 
     // PID gain values for each of the three closed-loop controllers (X, Y, and heading). These need
     // to be calibrated:
@@ -155,13 +155,13 @@ public class RobotHardware {
     // regularly oscillates around the target position.
     // - Once Kp is set, increase the Kd value from zero until the end behavior stabilizes.
     // - We will likely not use Ki values.
-    static final double PID_CONTROLLER_X_KP = 0.0067; // Proportional gain for axial (forward) position error - start slowing down at 150 mm (~ 6 in.)
+    static final double PID_CONTROLLER_X_KP = 0.0050; // Proportional gain for axial (forward) position error - start slowing down at 200 mm (~ 8 in.)
     static final double PID_CONTROLLER_X_KD = 0.0; // Derivative gain for axial (forward) position error
     static final double PID_CONTROLLER_X_KI = 0.0; // Integral gain for axial (forward) position error
-    static final double PID_CONTROLLER_Y_KP = 0.01; // Proportional gain for lateral (strafe) position error - start slowing down at 100 mm (~ 4 in.)
+    static final double PID_CONTROLLER_Y_KP = 0.0067; // Proportional gain for lateral (strafe) position error - start slowing down at 150 mm (~ 6 in.)
     static final double PID_CONTROLLER_Y_KD = 0.0; // Derivative gain for lateral (strafe) position error
     static final double PID_CONTROLLER_Y_KI = 0.0; // Integral gain for lateral (strafe) position error
-    static final double PID_CONTROLLER_YAW_KP = 4; // Proportional gain for yaw (turning) error - start slowing down at 0.25 radians (~ 15 degrees)
+    static final double PID_CONTROLLER_YAW_KP = 1.637; // Proportional gain for yaw (turning) error - start slowing down at 0.6109 radians (~ 35 degrees)
     static final double PID_CONTROLLER_YAW_KD = 0.0; // Derivative gain for yaw (turning) error
     static final double PID_CONTROLLER_YAW_KI = 0.0; // Integral gain for yaw (turning) error
 
@@ -481,10 +481,7 @@ public class RobotHardware {
         // update the x, y, and heading odometry counters
         xOdometryCounter += dx;
         yOdometryCounter += dy;
-        headingOdometryCounter = (headingOdometryCounter + dtheta) % (2.0 * Math.PI); // normalize new heading to [0, 2pi)
-        if(headingOdometryCounter < 0) {
-            headingOdometryCounter += 2.0 * Math.PI;
-        }
+        headingOdometryCounter += dtheta;
 
         // update the current position in field coordinate system from the deltas
         double theta = currentFieldPosition.getHeading(AngleUnit.RADIANS) + (dtheta / 2);
@@ -644,9 +641,9 @@ public class RobotHardware {
     public void forward(double distance, double speed) {
 
         // Proportional controllers for x, y, and yaw
-        PIDController xController = new PIDController(distance, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP, PID_CONTROLLER_X_KI, PID_CONTROLLER_X_KD);
-        PIDController yController = new PIDController(0.0, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
-        PIDController yawController = new PIDController(0.0, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
+        //PIDController xController = new PIDController(distance, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP, PID_CONTROLLER_X_KI, PID_CONTROLLER_X_KD);
+        //PIDController yController = new PIDController(0.0, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
+        //PIDController yawController = new PIDController(0.0, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -655,12 +652,15 @@ public class RobotHardware {
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (Math.abs(xOdometryCounter - distance) > MOVE_POSITION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        while (Math.abs(distance - xOdometryCounter) > MOVE_POSITION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the control output for each of the three controllers
-            double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
-            double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
-            double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
+            //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
+            double xPower = clip(PID_CONTROLLER_X_KP * (distance - xOdometryCounter), -1.0, 1.0);
+            //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
+            double yPower = 0;
+            //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
+            double yawPower = 0;
 
             // Move the robot based on the calculated powers
             move(xPower, yPower, yawPower, speed);
@@ -669,7 +669,7 @@ public class RobotHardware {
             // NOTE: This may not be necessary if the loop time is long because of the three PID
             // controller calculations.
             if (isLinearOpMode) {
-                ((LinearOpMode) myOpMode).sleep(100);
+                ((LinearOpMode) myOpMode).sleep(50);
             }
 
             // Update the odometry counters
@@ -690,9 +690,9 @@ public class RobotHardware {
     public void strafe(double distance, double speed) {
 
         // Proportional controllers for x, y, and yaw
-        PIDController xController = new PIDController(0.0, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP, PID_CONTROLLER_X_KI, PID_CONTROLLER_X_KD);
-        PIDController yController = new PIDController(distance, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
-        PIDController yawController = new PIDController(0.0, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
+        //PIDController xController = new PIDController(0.0, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP, PID_CONTROLLER_X_KI, PID_CONTROLLER_X_KD);
+        //PIDController yController = new PIDController(distance, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
+        //PIDController yawController = new PIDController(0.0, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -701,12 +701,15 @@ public class RobotHardware {
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (Math.abs(yOdometryCounter - distance) > MOVE_POSITION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        while (Math.abs(distance - yOdometryCounter) > MOVE_POSITION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the control output for each of the three controllers
-            double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
-            double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
-            double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
+            //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
+            double xPower = 0;
+            //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
+            double yPower = clip(PID_CONTROLLER_Y_KP * (distance - yOdometryCounter), -1.0, 1.0);
+            //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
+            double yawPower = 0;
 
             // Move the robot based on the calculated powers
             move(xPower, yPower, yawPower, speed);
@@ -715,7 +718,7 @@ public class RobotHardware {
             // NOTE: This may not be necessary if the loop time is long because of the three PID
             // controller calculations.
             if (isLinearOpMode) {
-                ((LinearOpMode) myOpMode).sleep(100);
+                ((LinearOpMode) myOpMode).sleep(50);
             }
 
             // Update the odometry counters
@@ -736,36 +739,52 @@ public class RobotHardware {
     public void turn(double angle, double speed) {
 
         // Proportional controllers for x, y, and yaw
-        PIDController xController = new PIDController(0.0, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP, PID_CONTROLLER_X_KI, PID_CONTROLLER_X_KD);
-        PIDController yController = new PIDController(0.0, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
-        PIDController yawController = new PIDController(angle, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
+        //PIDController xController = new PIDController(0.0, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP, PID_CONTROLLER_X_KI, PID_CONTROLLER_X_KD);
+        //PIDController yController = new PIDController(0.0, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
+        //PIDController yawController = new PIDController(angle, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
+        // Update telemetry with current heading
+        // NOTE: This is for testing purposes only and should be removed in final code
+        myOpMode.telemetry.addData("Requested Heading", angle);
+        myOpMode.telemetry.addData("Current Heading", getFieldHeading());
+        myOpMode.telemetry.update();
 
         // reset the odometry counters to zero
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (Math.abs(headingOdometryCounter - angle) > ROTATE_HEADING_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        while (Math.abs(angle - headingOdometryCounter) > ROTATE_HEADING_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the control output for each of the three controllers
-            double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
-            double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
-            double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
+            //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
+            double xPower = 0;
+            //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
+            double yPower = 0;
+            //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
+            double yawPower = clip(PID_CONTROLLER_YAW_KP * (angle - headingOdometryCounter), -1.0, 1.0);
 
             // Move the robot based on the calculated powers
-            move(xPower, yPower, yawPower, speed);
+            // NOTE: cut speed until we can figure out the parameters for the PID controller
+            move(xPower, yPower, yawPower, speed * 0.5);
 
             // If we are in a linear opmode, sleep for a short time to allow the robot to move
             // NOTE: This may not be necessary if the loop time is long because of the three PID
             // controller calculations.
             if (isLinearOpMode) {
-                ((LinearOpMode) myOpMode).sleep(100);
+                ((LinearOpMode) myOpMode).sleep(50);
             }
 
             // Update the odometry counters
             updateOdometry();
+
+            // Update telemetry with current heading
+            // NOTE: This is for testing purposes only and should be removed in final code
+            myOpMode.telemetry.addData("Requested Heading", angle);
+            myOpMode.telemetry.addData("Current Heading", getFieldHeading());
+            myOpMode.telemetry.update();
         }
 
         // stop the robot
@@ -1119,10 +1138,10 @@ class PIDController {
     }
 
     // Method to calculate the control output based on the current position
-    public double calculate(double currentFieldPosition) {
+    public double calculate(double currentPosition) {
 
         // Calculate the error
-        double error = target - currentFieldPosition;
+        double error = target - currentPosition;
 
         // Get elapsed time (secs) since last calculation
         int currentTime = (int) System.currentTimeMillis() / 1000;
