@@ -138,8 +138,9 @@ public class BucketAutoOpMode extends LinearOpMode {
             robot.forward(-620,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
         //turn to face blue wall
+        // reduced from -3pi/4 (-135 degrees) to try and fix apparent overshoot
         if(opModeIsActive())
-            robot.turn(-2.21, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.turn(-2.30, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
         //move to box
         if(opModeIsActive())

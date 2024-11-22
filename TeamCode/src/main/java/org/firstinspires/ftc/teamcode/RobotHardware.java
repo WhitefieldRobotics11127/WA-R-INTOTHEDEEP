@@ -143,10 +143,10 @@ public class RobotHardware {
      */
     // Tolerance values for closed-loop controllers for use in translate and rotate commands
     static final double MOVE_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
-    static final double ROTATE_HEADING_TOLERANCE = 0.0873; // Tolerance for heading in radians (~5 degrees)
+    static final double ROTATE_HEADING_TOLERANCE = 0.0628; // Tolerance for heading in radians (~3.6 degrees)
     static final double PID_CONTROLLER_X_DEADBAND = 5.0; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
     static final double PID_CONTROLLER_Y_DEADBAND = 5.0; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
-    static final double PID_CONTROLLER_YAW_DEADBAND = 0.04; // Deadband range for Yaw power calculation. Should be less than ROTATE_HEADING_TOLERANCE
+    static final double PID_CONTROLLER_YAW_DEADBAND = 0.03; // Deadband range for Yaw power calculation. Should be less than ROTATE_HEADING_TOLERANCE
 
     // PID gain values for each of the three closed-loop controllers (X, Y, and heading). These need
     // to be calibrated:
@@ -484,6 +484,11 @@ public class RobotHardware {
         headingOdometryCounter += dtheta;
 
         // update the current position in field coordinate system from the deltas
+        // NOTE: disable this code for now since we are not using the field position and it may be
+        // making the runtime too long. Utlimately we may want to store the field position in a
+        // structure that is not as intensive to update (i.e., one where a new object instance
+        // doesn't have to be created each time).
+        /*
         double theta = currentFieldPosition.getHeading(AngleUnit.RADIANS) + (dtheta / 2);
         double newX = currentFieldPosition.getX(DistanceUnit.MM) + dx * Math.cos(theta) - dy * Math.sin(theta);
         double newY = currentFieldPosition.getY(DistanceUnit.MM) + dx * Math.sin(theta) + dy * Math.cos(theta);
@@ -492,6 +497,7 @@ public class RobotHardware {
             newHeading += 2.0 * Math.PI;
         }
         currentFieldPosition = new Pose2D(DistanceUnit.MM, newX, newY, AngleUnit.RADIANS, newHeading);
+        */
     }
 
     /**
@@ -666,10 +672,12 @@ public class RobotHardware {
             move(xPower, yPower, yawPower, speed);
 
             // If we are in a linear opmode, sleep for a short time to allow the robot to move
-            // NOTE: This may not be necessary if the loop time is long because of the three PID
-            // controller calculations.
+            // and/or for the encoder wheels to update their position.
+            // NOTE: Need to look into more what's needed/efficient here: sleep(), idle(), or nothing
+            // at all.
             if (isLinearOpMode) {
-                ((LinearOpMode) myOpMode).sleep(50);
+                //((LinearOpMode) myOpMode).sleep(50);
+                ((LinearOpMode) myOpMode).idle();
             }
 
             // Update the odometry counters
@@ -715,10 +723,12 @@ public class RobotHardware {
             move(xPower, yPower, yawPower, speed);
 
             // If we are in a linear opmode, sleep for a short time to allow the robot to move
-            // NOTE: This may not be necessary if the loop time is long because of the three PID
-            // controller calculations.
+            // and/or for the encoder wheels to update their position.
+            // NOTE: Need to look into more what's needed/efficient here: sleep(), idle(), or nothing
+            // at all.
             if (isLinearOpMode) {
-                ((LinearOpMode) myOpMode).sleep(50);
+                //((LinearOpMode) myOpMode).sleep(50);
+                ((LinearOpMode) myOpMode).idle();
             }
 
             // Update the odometry counters
@@ -761,13 +771,16 @@ public class RobotHardware {
             double yawPower = clip(PID_CONTROLLER_YAW_KP * (angle - headingOdometryCounter), -1.0, 1.0);
 
             // Move the robot based on the calculated powers
-            move(xPower, yPower, yawPower, speed );
+            // NOTE: We reduced the yaw power by 40% to make the robot turn more slowly and accurately
+            move(xPower, yPower, yawPower, speed * 0.6);
 
             // If we are in a linear opmode, sleep for a short time to allow the robot to move
-            // NOTE: This may not be necessary if the loop time is long because of the three PID
-            // controller calculations.
+            // and/or for the encoder wheels to update their position.
+            // NOTE: Need to look into more what's needed/efficient here: sleep(), idle(), or nothing
+            // at all.
             if (isLinearOpMode) {
-                ((LinearOpMode) myOpMode).sleep(50);
+                //((LinearOpMode) myOpMode).sleep(50);
+                ((LinearOpMode) myOpMode).idle();
             }
 
             // Update the odometry counters
