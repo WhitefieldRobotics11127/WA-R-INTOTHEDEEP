@@ -172,9 +172,9 @@ public class RobotHardware {
     static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.6; // Factor to limit power to arm rotation motor
 
     // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
-    static final double ARM_ROTATION_DEADBAND = 0.02; // Deadband range for arm rotation position
-    static final double ARM_ROTATION_TOLERANCE = 0.05; // Tolerance for arm rotation position
-    static final double ARM_ROTATION_KP = 33.33; // Proportional gain for arm rotation position error
+    static final double ARM_ROTATION_DEADBAND = 0.01; // Deadband range for arm rotation position
+    static final double ARM_ROTATION_TOLERANCE = 0.025; // Tolerance for arm rotation position
+    static final double ARM_ROTATION_KP = 10.0; // Proportional gain for arm rotation position error
 
     // Maximum voltage from arm rotation potentiometer
     // NOTE: this is set in init() from the getMaxVoltage() method on the potentiometer and
@@ -334,7 +334,7 @@ public class RobotHardware {
         // to be damaged because the arm can be over-rotated and the gearbox on the motor makes it
         // very strong. *****
         armRotationMotor.setDirection(DcMotorEx.Direction.FORWARD);
-        //armRotationMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        armRotationMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         armRotationMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // Get the maximum voltage from the arm rotation potentiometer for calculating arm rotation
@@ -746,11 +746,6 @@ public class RobotHardware {
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
 
-        // ****** NOTE: This is for testing purposes only and should be removed in final code
-        myOpMode.telemetry.addData("Requested Heading", angle);
-        myOpMode.telemetry.addData("Current Heading", getFieldHeading());
-        myOpMode.telemetry.update();
-
         // reset the odometry counters to zero
         resetOdometryCounters();
 
@@ -766,8 +761,7 @@ public class RobotHardware {
             double yawPower = clip(PID_CONTROLLER_YAW_KP * (angle - headingOdometryCounter), -1.0, 1.0);
 
             // Move the robot based on the calculated powers
-            // NOTE: cut speed until we can figure out the parameters for the PID controller
-            move(xPower, yPower, yawPower, speed * 0.5);
+            move(xPower, yPower, yawPower, speed );
 
             // If we are in a linear opmode, sleep for a short time to allow the robot to move
             // NOTE: This may not be necessary if the loop time is long because of the three PID
@@ -778,11 +772,6 @@ public class RobotHardware {
 
             // Update the odometry counters
             updateOdometry();
-
-            // ***** NOTE: This is for testing purposes only and should be removed in final code
-            myOpMode.telemetry.addData("Requested Heading", angle);
-            myOpMode.telemetry.addData("Current Heading", getFieldHeading());
-            myOpMode.telemetry.update();
         }
 
         // stop the robot
@@ -886,28 +875,32 @@ public class RobotHardware {
         position = clip(position, ARM_ROTATION_MIN, ARM_ROTATION_MAX);
 
         // Create a PID controller for the arm rotation position potentiometer
-        PIDController armRotationController = new PIDController(position, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP);
+        //PIDController armRotationController = new PIDController(position, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP);
 
         // get the initial potentiometer value for the arm rotation angle
         double armPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
 
         // Loop until the arm rotation has reached the desired position
-        while (Math.abs(armPosition - position) > ARM_ROTATION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        while (Math.abs(position - armPosition) > ARM_ROTATION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the voltage output for the arm rotation motor
-            double power = clip(armRotationController.calculate(armPosition), -1.0, 1.0);
+            //double power = clip(armRotationController.calculate(armPosition), -1.0, 1.0);
+            double power = clip(ARM_ROTATION_KP * (position - armPosition), -1.0, 1.0);
 
             // Rotate the arm
             armRotationMotor.setPower(power * ARM_ROTATION_POWER_LIMIT_FACTOR);
 
             // Give the arm some time to move
             if (isLinearOpMode) {
-                ((LinearOpMode) myOpMode).sleep(100);
+                ((LinearOpMode) myOpMode).sleep(50);
             }
 
             // Update the potentiometer value for the arm rotation angle
             armPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
         }
+
+        // Stop the rotation of the arm
+        armRotationMotor.setPower(0.0);
      }
 
     /**

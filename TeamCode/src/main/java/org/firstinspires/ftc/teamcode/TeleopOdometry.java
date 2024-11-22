@@ -176,10 +176,11 @@ public class TeleopOdometry extends OpMode
         // ***** Handle arm and claw control from Gamepad2 *****
 
         // Right trigger controls the claw servo
-        if (gamepad2.right_trigger > 0.4 && lastGamepad2.right_trigger <= 0.4)
-            robot.closeClaw(false);
-        else if (gamepad2.right_trigger < 0.4 && lastGamepad2.right_trigger >= 0.4)
-            robot.openClaw(false);
+        double servoPosition;
+        if (gamepad2.right_trigger > 0.4)
+            robot.closeClaw((gamepad2.left_trigger > 0.4));
+        else
+            robot.openClaw((gamepad2.left_trigger > 0.4));
 
         // If the arm extension motor is busy extending arm to a position, check progress
         // and reset flag if finished

@@ -67,46 +67,30 @@ public class BucketAutoOpMode extends LinearOpMode {
 
     // 0.5 = straight up
     public void dropInBucket() {
-    //rotate arm upwards to field.
+        //rotate arm upwards to field.
         if (opModeIsActive())
-            robot.setArmRotation(0.5);
-    //extend arm
+            robot.setArmRotation(0.14);
+        //extend arm
         if (opModeIsActive())
-            robot.setArmExtension(robot.ARM_EXTENSION_MAX);
-    //approach bucket
+            robot.setArmExtension(1650);
+        //approach bucket
         if (opModeIsActive())
-            robot.forward(100, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-    //release claw to drop block and close claw
+            robot.forward(90, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+        //release claw to drop block and close claw
         if (opModeIsActive())
             robot.openClaw(true);
         //extend arm
         if (opModeIsActive())
-            robot.setArmExtension(robot.ARM_EXTENSION_MAX);
-    //the Scoot!
+            robot.setArmExtension(1650);
+        //the Scoot!
         if (opModeIsActive())
-            robot.forward(-100, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
-    //retract the arm
+            robot.forward(-90, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
+        //retract the arm
         if (opModeIsActive())
-            robot.setArmExtension(0);
-    //rotate arm back
+            robot.setArmExtension(robot.ARM_EXTENSION_MIN);
+        //rotate arm back
         if (opModeIsActive())
-            robot.setArmRotation(0);
-            //
-        //
-    }
-    public void makeContact() {
-        //turn to face blue wall
-        if(opModeIsActive())
-                robot.turn(3*(Math.PI)/4, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-        //move to box
-        if(opModeIsActive())
-                robot.forward(1500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-        //turn to face box
-        if(opModeIsActive())
-                robot.turn(Math.PI/2,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-        //go to box thing
-        if (opModeIsActive())
-            robot.forward(300,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.setArmRotation(RobotHardware.ARM_ROTATION_MIN);
     }
     @Override
     public void runOpMode() {
@@ -126,21 +110,56 @@ public class BucketAutoOpMode extends LinearOpMode {
         // Reset the runtime timer
         runtime.reset();
 
-        // run until the end of the match (driver presses STOP)
+        // Check if the opMode is still active (end of autonomous period or driver presses STOP)
+        // before each command
 
+        //Move off the wall
         if (opModeIsActive())
-            //Move off the wall
             robot.forward(250,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        //turn to face the bucket
         if (opModeIsActive())
-            //rotate toward bucket wall
             robot.turn(Math.PI/2,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        // move toward bucket wall
         if (opModeIsActive())
-            //move toward bucket wall
-            robot.forward(500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(970,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        // rotate toward the bucket
         if (opModeIsActive())
-            //rotate toward the bucket
             robot.turn(Math.PI/4,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        // call method to drop block in bucket
         if (opModeIsActive())
             dropInBucket();
+
+        // backoff from bucket to clear samples on spikes
+        if (opModeIsActive())
+            robot.forward(-620,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        //turn to face blue wall
+        if(opModeIsActive())
+            robot.turn(-2.21, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        //move to box
+        if(opModeIsActive())
+            robot.forward(850,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        //turn to face box
+        if(opModeIsActive())
+            robot.turn(-Math.PI/2, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        //go to box thing
+        if (opModeIsActive())
+            robot.forward(315,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        //extend the arm
+        if (opModeIsActive())
+            robot.setArmExtension(1800);
+
+        //lower arm to contact rung
+        if (opModeIsActive())
+            robot.setArmRotation(0.24);
+
     }
 }
