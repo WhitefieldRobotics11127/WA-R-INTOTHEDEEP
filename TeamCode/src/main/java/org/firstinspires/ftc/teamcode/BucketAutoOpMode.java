@@ -117,7 +117,7 @@ public class BucketAutoOpMode extends LinearOpMode {
 
         //lower arm to contact rung
         if (opModeIsActive())
-            robot.setArmRotation(0.24);
+            robot.setArmRotation(0.26);
 
     }
 }

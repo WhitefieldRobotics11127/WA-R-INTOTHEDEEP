@@ -56,7 +56,7 @@ public class RobotHardware {
     /** Slower speed for movement commands to allow for precise odometry tracking. */
     public static final double MOTOR_SPEED_FACTOR_PRECISE = 0.35;
     /** Separate speed for Autonomous movement commands to use. */
-    public static final double MOTOR_SPEED_FACTOR_AUTONOMOUS = 0.4;
+    public static final double MOTOR_SPEED_FACTOR_AUTONOMOUS = 0.5;
 
     // Allowable limits for arm rotation
     // NOTE: These are [0, 1) within voltage rage of potentiometer
@@ -772,7 +772,7 @@ public class RobotHardware {
 
             // Move the robot based on the calculated powers
             // NOTE: We reduced the yaw power by 40% to make the robot turn more slowly and accurately
-            move(xPower, yPower, yawPower, speed * 0.6);
+            move(xPower, yPower, yawPower, speed * 0.7);
 
             // If we are in a linear opmode, sleep for a short time to allow the robot to move
             // and/or for the encoder wheels to update their position.
