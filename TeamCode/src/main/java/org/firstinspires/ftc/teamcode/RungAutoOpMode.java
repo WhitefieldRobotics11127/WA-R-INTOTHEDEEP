@@ -98,7 +98,7 @@ public class RungAutoOpMode extends LinearOpMode {
             robot.turn(Math.PI,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         //move back
         if(opModeIsActive())
-            robot.move(870,0, 0, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.move(770,0, 0, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         //turn toward the rung
         if(opModeIsActive())
             robot.turn(3*((Math.PI)/2),RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
