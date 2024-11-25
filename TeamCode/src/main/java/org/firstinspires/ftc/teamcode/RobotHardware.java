@@ -100,7 +100,7 @@ public class RobotHardware {
     /** Servo position for open claw. */
     public static final double CLAW_SERVO_OPEN = 0.6;
     /** Servo position for closed claw. */
-    public static final double CLAW_SERVO_CLOSE = 0.08;
+    public static final double CLAW_SERVO_CLOSE = 0.1;
     /** Servo position for widest opening of claw. */
     public static final double CLAW_SERVO_OPEN_WIDE = 0.75;
     /** Servo position for tightly gripping claw. */
@@ -142,11 +142,12 @@ public class RobotHardware {
      * These may require a lot of tweaking.
      */
     // Tolerance values for closed-loop controllers for use in translate and rotate commands
-    static final double MOVE_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
-    static final double ROTATE_HEADING_TOLERANCE = 0.0628; // Tolerance for heading in radians (~3.6 degrees)
-    static final double PID_CONTROLLER_X_DEADBAND = 5.0; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
-    static final double PID_CONTROLLER_Y_DEADBAND = 5.0; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
-    static final double PID_CONTROLLER_YAW_DEADBAND = 0.03; // Deadband range for Yaw power calculation. Should be less than ROTATE_HEADING_TOLERANCE
+    static final double X_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
+    static final double Y_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
+    static final double HEADING_TOLERANCE = 0.0628; // Tolerance for heading in radians (~3.6 degrees)
+    static final double X_CONTROLLER_DEADBAND = 5.0; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
+    static final double Y_CONTROLLER_DEADBAND = 5.0; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
+    static final double YAW_CONTROLLER_DEADBAND = 0.03; // Deadband range for Yaw power calculation. Should be less than HEADING_TOLERANCE
 
     // PID gain values for each of the three closed-loop controllers (X, Y, and heading). These need
     // to be calibrated:
@@ -155,15 +156,15 @@ public class RobotHardware {
     // regularly oscillates around the target position.
     // - Once Kp is set, increase the Kd value from zero until the end behavior stabilizes.
     // - We will likely not use Ki values.
-    static final double PID_CONTROLLER_X_KP = 0.0050; // Proportional gain for axial (forward) position error - start slowing down at 200 mm (~ 8 in.)
-    static final double PID_CONTROLLER_X_KD = 0.0; // Derivative gain for axial (forward) position error
-    static final double PID_CONTROLLER_X_KI = 0.0; // Integral gain for axial (forward) position error
-    static final double PID_CONTROLLER_Y_KP = 0.0067; // Proportional gain for lateral (strafe) position error - start slowing down at 150 mm (~ 6 in.)
-    static final double PID_CONTROLLER_Y_KD = 0.0; // Derivative gain for lateral (strafe) position error
-    static final double PID_CONTROLLER_Y_KI = 0.0; // Integral gain for lateral (strafe) position error
-    static final double PID_CONTROLLER_YAW_KP = 1.637; // Proportional gain for yaw (turning) error - start slowing down at 0.6109 radians (~ 35 degrees)
-    static final double PID_CONTROLLER_YAW_KD = 0.0; // Derivative gain for yaw (turning) error
-    static final double PID_CONTROLLER_YAW_KI = 0.0; // Integral gain for yaw (turning) error
+    static final double X_CONTROLLER_KP = 0.0050; // Proportional gain for axial (forward) position error - start slowing down at 200 mm (~ 8 in.)
+    static final double X_CONTROLLER_KD = 0.0; // Derivative gain for axial (forward) position error
+    static final double X_CONTROLLER_KI = 0.0; // Integral gain for axial (forward) position error
+    static final double Y_CONTROLLER_KP = 0.0067; // Proportional gain for lateral (strafe) position error - start slowing down at 150 mm (~ 6 in.)
+    static final double Y_CONTROLLER_KD = 0.0; // Derivative gain for lateral (strafe) position error
+    static final double Y_CONTROLLER_KI = 0.0; // Integral gain for lateral (strafe) position error
+    static final double YAW_CONTROLLER_KP = 1.637; // Proportional gain for yaw (turning) error - start slowing down at 0.6109 radians (~ 35 degrees)
+    static final double YAW_CONTROLLER_KD = 0.0; // Derivative gain for yaw (turning) error
+    static final double YAW_CONTROLLER_KI = 0.0; // Integral gain for yaw (turning) error
 
     /*
      * Parameter values for arm (Viper-slide) and claw.
@@ -473,8 +474,15 @@ public class RobotHardware {
         int dl = lastLeftEncoderPosition  - oldLeftCounter;
         int dr= lastRightEncoderPosition - oldRightCounter;
         int da = lastAuxEncoderPosition - oldAuxOdometryCounter;
-        double dtheta = DEADWHEEL_MM_PER_TICK * (dr-dl) / DEADWHEEL_TRACKWIDTH; // this approximation seems like it would build up a lot of error
-        //double dtheta = Math.acos(1 - Math.pow(DEADWHEEL_MM_PER_TICK * (dr -dl), 2) / (2 * Math.pow(DEADWHEEL_TRACKWIDTH, 2))); // this seemed to be more technically accurate but wasn't working?
+        double dtheta = DEADWHEEL_MM_PER_TICK * (dr - dl) / DEADWHEEL_TRACKWIDTH;
+        // The linear approximation above becomes less accurate as (dr - dl) grows large. The
+        // equations below provide a more accurate approximation that uses the law of cosines to
+        // calculate the change in heading (dtheta). However the sign of the angle change is lost
+        // in the calculations.
+        // As long as updateOdometry() is called frequently enough, i.e., the change in odometry
+        // wheel ticks remains relatively small, the linear approximation should be sufficient.
+        //double c = DEADWHEEL_MM_PER_TICK * (dr - dl) / 2.0;
+        //double dtheta = Math.acos(1 - (2 * Math.pow(c, 2)) / Math.pow(DEADWHEEL_TRACKWIDTH, 2)); // this is based on the law cosines cos(theta) = a^2 + b^2 - c^2 / 2ab where a = b = trackwidth / 2
         double dx = DEADWHEEL_MM_PER_TICK * (dl+dr) / 2.0;
         double dy = DEADWHEEL_MM_PER_TICK * da - DEADWHEEL_FORWARD_OFFSET * dtheta;
 
@@ -485,7 +493,7 @@ public class RobotHardware {
 
         // update the current position in field coordinate system from the deltas
         // NOTE: disable this code for now since we are not using the field position and it may be
-        // making the runtime too long. Utlimately we may want to store the field position in a
+        // making the runtime too long. Ultimately we may want to store the field position in a
         // structure that is not as intensive to update (i.e., one where a new object instance
         // doesn't have to be created each time).
         /*
@@ -647,9 +655,9 @@ public class RobotHardware {
     public void forward(double distance, double speed) {
 
         // Proportional controllers for x, y, and yaw
-        //PIDController xController = new PIDController(distance, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP, PID_CONTROLLER_X_KI, PID_CONTROLLER_X_KD);
-        //PIDController yController = new PIDController(0.0, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
-        //PIDController yawController = new PIDController(0.0, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
+        PController xController = new PController(distance, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
+        //PController yController = new PController(0.0, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
+        //PController yawController = new PController(0.0, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -658,11 +666,10 @@ public class RobotHardware {
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (Math.abs(distance - xOdometryCounter) > MOVE_POSITION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        while (!xController.isWithinTolerance(xOdometryCounter) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the control output for each of the three controllers
-            //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
-            double xPower = clip(PID_CONTROLLER_X_KP * (distance - xOdometryCounter), -1.0, 1.0);
+            double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
             //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
             double yPower = 0;
             //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
@@ -673,8 +680,7 @@ public class RobotHardware {
 
             // If we are in a linear opmode, sleep for a short time to allow the robot to move
             // and/or for the encoder wheels to update their position.
-            // NOTE: Need to look into more what's needed/efficient here: sleep(), idle(), or nothing
-            // at all.
+            // NOTE: Need to look into what's needed/efficient here: sleep(), idle(), or nothing
             if (isLinearOpMode) {
                 //((LinearOpMode) myOpMode).sleep(50);
                 ((LinearOpMode) myOpMode).idle();
@@ -684,7 +690,7 @@ public class RobotHardware {
             updateOdometry();
         }
 
-        // stop the robot
+        // stop movement of the robot
         stop();
     }
 
@@ -698,9 +704,9 @@ public class RobotHardware {
     public void strafe(double distance, double speed) {
 
         // Proportional controllers for x, y, and yaw
-        //PIDController xController = new PIDController(0.0, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP, PID_CONTROLLER_X_KI, PID_CONTROLLER_X_KD);
-        //PIDController yController = new PIDController(distance, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
-        //PIDController yawController = new PIDController(0.0, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
+        //PController xController = new PController(0.0, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
+        PController yController = new PController(distance, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
+        //PController yawController = new PController(0.0, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -709,13 +715,12 @@ public class RobotHardware {
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (Math.abs(distance - yOdometryCounter) > MOVE_POSITION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        while (!yController.isWithinTolerance(xOdometryCounter) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the control output for each of the three controllers
             //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
             double xPower = 0;
-            //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
-            double yPower = clip(PID_CONTROLLER_Y_KP * (distance - yOdometryCounter), -1.0, 1.0);
+            double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
             //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
             double yawPower = 0;
 
@@ -749,9 +754,10 @@ public class RobotHardware {
     public void turn(double angle, double speed) {
 
         // Proportional controllers for x, y, and yaw
-        //PIDController xController = new PIDController(0.0, PID_CONTROLLER_X_DEADBAND, PID_CONTROLLER_X_KP, PID_CONTROLLER_X_KI, PID_CONTROLLER_X_KD);
-        //PIDController yController = new PIDController(0.0, PID_CONTROLLER_Y_DEADBAND, PID_CONTROLLER_Y_KP, PID_CONTROLLER_Y_KI, PID_CONTROLLER_Y_KD);
-        //PIDController yawController = new PIDController(angle, PID_CONTROLLER_YAW_DEADBAND, PID_CONTROLLER_YAW_KP, PID_CONTROLLER_YAW_KI, PID_CONTROLLER_YAW_KD);
+        //PController xController = new PController(0.0, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
+        //PController yController = new PController(0.0, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
+        PController yawController = new PController(angle, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
+
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -760,15 +766,14 @@ public class RobotHardware {
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (Math.abs(angle - headingOdometryCounter) > ROTATE_HEADING_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        while (!yawController.isWithinTolerance(headingOdometryCounter) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the control output for each of the three controllers
             //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
             double xPower = 0;
             //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
             double yPower = 0;
-            //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
-            double yawPower = clip(PID_CONTROLLER_YAW_KP * (angle - headingOdometryCounter), -1.0, 1.0);
+            double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
 
             // Move the robot based on the calculated powers
             // NOTE: We reduced the yaw power by 40% to make the robot turn more slowly and accurately
@@ -810,8 +815,9 @@ public class RobotHardware {
 
     /**
      * Power the motor to raise (-) or lower (+) the arm.
-     * Applies the specified power to the arm rotation motor while monitoring the
-     * potentiometer position and keeping the arm within limits.
+     * This method should be called from teleop OpModes to apply the specified power to the arm
+     * rotation motor while monitoring the arm rotation position sensor (potentiometer) and keep
+     * the arm within limits.
      * @param power power for the arm rotation motor (-1.0 to 1.0)
      */
     public void rotateArm(double power) {
@@ -850,19 +856,16 @@ public class RobotHardware {
      * Retrieve the current position value for the arm rotation (0.0 to 1.0).
      */
     public double getArmRotation() {
-        // return the current position values the arm calculated as a proportion of the maximum
-        // voltage from the potentiometer
+        // return the current position value for the arm rotation calculated as a proportion of the
+        // maximum voltage from the arm rotation position sensor (potentiometer)
         return armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
     }
 
     /**
-     * Retrieve raw voltage for arm rotation potentiometer (volts).
+     * Retrieve raw voltage for arm rotation position potentiometer (volts).
      * This method can be used to display telemetry information during testing and calibration.
      */
-    public double getArmRotationSensorVoltage() {
-        // return the current potentiometer value for the arm rotation angle
-        return armRotationPositionSensor.getVoltage();
-    }
+    public double getArmRotationSensorVoltage() { return armRotationPositionSensor.getVoltage(); }
 
     /**
      * Retrieve current power setting for the arm rotation motor (-1.0 to 1.0).
@@ -888,24 +891,23 @@ public class RobotHardware {
         position = clip(position, ARM_ROTATION_MIN, ARM_ROTATION_MAX);
 
         // Create a PID controller for the arm rotation position potentiometer
-        //PIDController armRotationController = new PIDController(position, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP);
+        PController armRotationController = new PController(position, ARM_ROTATION_TOLERANCE, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP);
 
         // get the initial potentiometer value for the arm rotation angle
         double armPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
 
         // Loop until the arm rotation has reached the desired position
-        while (Math.abs(position - armPosition) > ARM_ROTATION_TOLERANCE && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        while (armRotationController.isWithinTolerance(armPosition) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
             // Calculate the voltage output for the arm rotation motor
-            //double power = clip(armRotationController.calculate(armPosition), -1.0, 1.0);
-            double power = clip(ARM_ROTATION_KP * (position - armPosition), -1.0, 1.0);
+            double power = clip(armRotationController.calculate(armPosition), -1.0, 1.0);
 
             // Rotate the arm
             armRotationMotor.setPower(power * ARM_ROTATION_POWER_LIMIT_FACTOR);
 
             // Give the arm some time to move
             if (isLinearOpMode) {
-                ((LinearOpMode) myOpMode).sleep(50);
+                ((LinearOpMode) myOpMode).idle();
             }
 
             // Update the potentiometer value for the arm rotation angle
@@ -918,8 +920,8 @@ public class RobotHardware {
 
     /**
      * Power the motor to extend (+) or retract (-) the slide.
-     * Apply the specified power to the arm extension motor while monitoring the
-     * encoder position and keeping the arm within limits.
+     * This method should be called from teleop OpModes to apply the specified power to the arm
+     * extension motor while monitoring the encoder position and keeping the arm within limits.
      * @param power power for the arm extension motor (-1.0 to 1.0)
      */
     public void extendArm(double power) {
@@ -986,10 +988,7 @@ public class RobotHardware {
      * Retrieve the current arm extension position.
      * This method can be used to display telemetry information during testing.
      */
-    public int getArmExtension() {
-        // return the current encoder value for the arm extension motor
-        return armExtensionMotor.getCurrentPosition();
-    }
+    public int getArmExtension() { return armExtensionMotor.getCurrentPosition(); }
 
     /**
      * Extend the arm to the specified position (encoder value).
@@ -1100,20 +1099,57 @@ public class RobotHardware {
 }
 
 /**
+ * Proportional Controller class for computing motor power during autonomous motion.
+ * NOTE: Could have used the PID controller class passing 0s for Ki and Kd, but adding a bunch of
+ * if statements to remove the unnecessary calculations (for performance sake) made the code hard
+ * to read.
+ */
+class PController {
+
+    // properties to store values needed for repeated calculations
+    private final double target; // target position initially provided
+    private final double tolerance; // tolerance range for ending controller function
+    private final double deadband; // deadband range for returning zero power
+    private final double Kp; // proportional gain
+
+    // Constructor to set the controller parameters
+    public PController(double target, double tolerance, double deadband, double Kp) {
+        this.target = target;
+        this.tolerance = tolerance;
+        this.deadband = deadband;
+        this.Kp = Kp;
+    }
+
+    // Method to determine if error is within tolerance range
+    public boolean isWithinTolerance(double currentPosition) {
+        return Math.abs(target - currentPosition) < tolerance;
+    }
+    
+    // Method to calculate the control output based on the current position
+    public double calculate(double currentPosition) {
+
+        // Calculate the error
+        double error = target - currentPosition;
+        
+        // Check if the error is within the deadband range
+        if (Math.abs(error) < deadband)
+            return 0.0;
+        else
+            // Calculate the control output
+            return Kp * error;
+    }
+}
+
+/**
  * PID Controller class for computing motor power during autonomous motion.
- * NOTE: This can be made just a proportional controller ("P Controller") by only passing a
- * proportional (Kp) gain.
  */
 class PIDController {
 
-    // target position
-    private final double target;
-
-    // deadband range for returning zero power
-    private final double deadband;
-
-    // gains
-    private final double Kp;
+    // properties to store values needed for repeated calculations
+    private final double target; // target position initially provided
+    private final double tolerance; // tolerance range for ending controller function
+    private final double deadband; // deadband range for returning zero power
+    private final double Kp; // proportional gain
     private final double Ki;
     private final double Kd;
 
@@ -1123,24 +1159,20 @@ class PIDController {
     private int lastTime = 0;
 
     // Constructor to set the PID controller parameters with all (PID) gain values
-    public PIDController(double target, double deadband, double Kp, double Ki, double Kd) {
+    public PIDController(double target,  double tolerance, double deadband, double Kp, double Ki, double Kd) {
         this.target = target;
         this.deadband = deadband;
+        this.tolerance = tolerance;
         this.Kp = Kp;
         this.Ki = Ki;
         this.Kd = Kd;
     }
 
-    // Constructor to set the controller parameters with just proportional gain. This makes the
-    // controller a P controller.
-    public PIDController(double target, double deadband, double Kp) {
-        this.target = target;
-        this.deadband = deadband;
-        this.Kp = Kp;
-        this.Ki = 0.0;
-        this.Kd = 0.0;
+    // Method to determine if error is within tolerance range
+    public boolean isWithinTolerance(double currentPosition) {
+        return Math.abs(target - currentPosition) < tolerance;
     }
-
+    
     // Method to calculate the control output based on the current position
     public double calculate(double currentPosition) {
 
@@ -1166,6 +1198,6 @@ class PIDController {
             return 0.0;
         else
             // Calculate the control output
-            return Kp * error + Ki * integralSum + Kd * derivative;
+            return (Kp * error) + (Ki * integralSum) + (Kd * derivative);
     }
 }
