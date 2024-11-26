@@ -201,9 +201,9 @@ public class RobotHardware {
      * exposed through methods added to this class (thus the "abstraction" layer).
      */
     // NOTE: We should use the DCMotorEx class for all motors connected to a REV Control Hub or
-    // REV Expansion whether or not  we are using RUN_USING_ENCODERS or other extended functionality
-    // because the built-in REV motor controllers support all the functionality of the DCMotorEx
-    // class.
+    // REV Expansion Hub whether or not we are using RUN_USING_ENCODERS or other extended
+    // functionality because the built-in REV motor controllers support all the functionality of
+    // the DCMotorEx class.
     private DcMotorEx leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive;  //  Motors for Mecanum drive
     private DcMotorEx rightDeadwheelEncoder, leftDeadwheelEncoder, auxDeadwheelEncoder; // Encoders (deadwheels) for odometry
 
