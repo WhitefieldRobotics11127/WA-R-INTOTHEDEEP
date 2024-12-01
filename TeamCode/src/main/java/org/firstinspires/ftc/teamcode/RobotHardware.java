@@ -30,17 +30,32 @@ package org.firstinspires.ftc.teamcode;
  * occasionally need to be cleaned up to remove unused imports.
  */
 import static com.qualcomm.robotcore.util.Range.clip;
+
+import android.util.Size;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.robot.Robot;
 //import com.qualcomm.robotcore.hardware.IMU;
 //import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
+import java.util.ArrayList;
 
 /**
  * Hardware abstraction class for WA Robotics INTO THE DEEP competition robot
@@ -182,7 +197,6 @@ public class RobotHardware {
     // utilized to calculate an arm rotation position in the [0, 1)
     // range.
     double ARM_ROTATION_MAX_VOLTAGE;
-    
 
     // Limit the power to the extension motor to prevent damage to the arm. This needs to be calibrated.
     static final double ARM_EXTENSION_POWER_LIMIT_FACTOR = 0.7; // Factor to limit power to arm extension motor
@@ -194,6 +208,34 @@ public class RobotHardware {
     // Servo position limits for claw
     static final double CLAW_SERVO_RANGE_MIN = 0.0;
     static final double CLAW_SERVO_RANGE_MAX = 0.6;
+
+    /*
+     * Constants for vision (AprilTag) processing.
+     */
+    // Position and orientation of camera(s) on robot for AprilTag detection and field position
+    // calculation
+    // NOTE: These values relate the position and orientation of the center of the camera lens
+    // relative to the the robot on three axes. We are using definitions from gm0 and WPILib, which
+    // is different than the provided ConceptAprilTag example code:
+    //  Origin location: Center of rotation of the robot at field height
+    //  Axes orientation: +x forward, +y left, +z upward
+    //
+    // Position:
+    // If all values are zero (no translation), that implies the camera is at the rotational center
+    // of the robot. Suppose your camera is positioned 5 inches to the left, 7 inches forward, and
+    // 12 inches above the ground - you would need to set the position to (7, 5, 12).
+    //
+    // Orientation:
+    // If all values are zero (no rotation), that implies the camera is pointing straight up. In
+    // most cases, you'll need to set the pitch to 90 degrees (rotation about the y-axis), meaning
+    // the camera is horizontal. Use a yaw of 0 if the camera is pointing forwards, +90 degrees if
+    // it's pointing straight left, -90 degrees for straight right, etc. You can also set the roll
+    // to +/-90 degrees if it's vertical, or 180 degrees if it's upside-down.
+    //
+    private Position cam1Position = new Position(DistanceUnit.MM,
+            0, 22.5, 10.5, 0);
+    private YawPitchRollAngles cam1Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+            90, -90, 0, 0);
 
     /*
      * Hardware objects for current robot hardware.
@@ -210,6 +252,17 @@ public class RobotHardware {
     private DcMotorEx armRotationMotor, armExtensionMotor; // Motors for Viper-Slide arm extension and rotation
     private AnalogInput armRotationPositionSensor; // Potentiometer for arm rotation position
     private Servo clawServo; // Servo for claw open/close
+
+    private VisionPortal visionPortal; // Used to manage the camera input and activation of video processors.
+    private WebcamName webcam1; // For identifying webcam(s)
+    // NOTE: Because we want the AprilTag processor to return field position, the precise "pose"
+    // of the camera(s) on the robot has to be provided. However, the camera position is set through
+    // parameters of the AprilTag processor and not connected directly to the camera, so we need a
+    // separate AprilTag processor for each camera. Having separate AprilTag processors also allows
+    // us to (theoretically) perform AprilTag detection through multiple cameras simultaneously.
+    // To use AprilTag detection, the code has to both set the camera input in the VisionPortal to
+    // the desired camera and activate the corresponding AprilTag processor.
+    AprilTagProcessor aprilTagCam1; // Provides AprilTag detection through a specific camera.
 
     //private IMU imu; // IMU built into Rev Control Hub
 
@@ -358,6 +411,9 @@ public class RobotHardware {
         //                )
         //        )
         //);
+
+        // Initialize the vision portal and the AprilTag processor(s)
+        initVision();
     }
 
     /* ----- Low level motion methods for four-motor Mecanum drive train ----- */
@@ -477,12 +533,14 @@ public class RobotHardware {
         double dtheta = DEADWHEEL_MM_PER_TICK * (dr - dl) / DEADWHEEL_TRACKWIDTH;
         // The linear approximation above becomes less accurate as (dr - dl) grows large. The
         // equations below provide a more accurate approximation that uses the law of cosines to
-        // calculate the change in heading (dtheta). However the sign of the angle change is lost
-        // in the calculations.
-        // As long as updateOdometry() is called frequently enough, i.e., the change in odometry
-        // wheel ticks remains relatively small, the linear approximation should be sufficient.
+        // calculate the change in heading (dtheta):
+        //      cos(theta) = a^2 + b^2 - c^2 / 2ab
+        // where a = b = trackwidth / 2. However, the calculation utilizes several calls to the
+        // Math library which may be computational intensive. As long as updateOdometry() is called
+        // frequently enough, i.e., the change in odometry wheel ticks remains relatively small,
+        // the linear approximation should be sufficient.
         //double c = DEADWHEEL_MM_PER_TICK * (dr - dl) / 2.0;
-        //double dtheta = Math.acos(1 - (2 * Math.pow(c, 2)) / Math.pow(DEADWHEEL_TRACKWIDTH, 2)); // this is based on the law cosines cos(theta) = a^2 + b^2 - c^2 / 2ab where a = b = trackwidth / 2
+        //double dtheta = (c / Math.abs(c)) * Math.acos(1 - (2 * Math.pow(c, 2)) / Math.pow(DEADWHEEL_TRACKWIDTH, 2));
         double dx = DEADWHEEL_MM_PER_TICK * (dl+dr) / 2.0;
         double dy = DEADWHEEL_MM_PER_TICK * da - DEADWHEEL_FORWARD_OFFSET * dtheta;
 
@@ -668,6 +726,9 @@ public class RobotHardware {
         // Loop until the robot has reached the desired position
         while (!xController.isWithinTolerance(xOdometryCounter) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
+            // Update the odometry counters
+            updateOdometry();
+
             // Calculate the control output for each of the three controllers
             double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
             //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
@@ -685,9 +746,6 @@ public class RobotHardware {
                 //((LinearOpMode) myOpMode).sleep(50);
                 ((LinearOpMode) myOpMode).idle();
             }
-
-            // Update the odometry counters
-            updateOdometry();
         }
 
         // stop movement of the robot
@@ -717,6 +775,9 @@ public class RobotHardware {
         // Loop until the robot has reached the desired position
         while (!yController.isWithinTolerance(xOdometryCounter) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
+            // Update the odometry counters
+            updateOdometry();
+
             // Calculate the control output for each of the three controllers
             //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
             double xPower = 0;
@@ -735,9 +796,6 @@ public class RobotHardware {
                 //((LinearOpMode) myOpMode).sleep(50);
                 ((LinearOpMode) myOpMode).idle();
             }
-
-            // Update the odometry counters
-            updateOdometry();
         }
 
         // stop the robot
@@ -768,6 +826,9 @@ public class RobotHardware {
         // Loop until the robot has reached the desired position
         while (!yawController.isWithinTolerance(headingOdometryCounter) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
 
+            // Update the odometry counters
+            updateOdometry();
+
             // Calculate the control output for each of the three controllers
             //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
             double xPower = 0;
@@ -787,9 +848,6 @@ public class RobotHardware {
                 //((LinearOpMode) myOpMode).sleep(50);
                 ((LinearOpMode) myOpMode).idle();
             }
-
-            // Update the odometry counters
-            updateOdometry();
         }
 
         // stop the robot
@@ -807,7 +865,19 @@ public class RobotHardware {
      * @param heading current angle of robot relative to positive x-axis in field coordinates (rad)
      * @param speed Speed factor to apply (should use defined constants)
      */
-    public void moveToPosition(double x, double y, double heading, double speed) {
+    public void moveToPositionUsingAprilTag(double x, double y, double heading, int camera, double speed) {
+
+        // Proportional controllers for x, y, and yaw
+        PController xController = new PController(x, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
+        PController yController = new PController(y, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
+        PController yawController = new PController(heading, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
+
+        // Flag to determine if called from a Liner OpMode
+        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
+        // activate april tag detection
+        AprilTagDetector detector = new AprilTagDetector(myOpMode.hardwareMap, camera);
+
 
     }
 
@@ -1094,8 +1164,88 @@ public class RobotHardware {
 
     /* ----- Vision processing methods ----- */
 
-    // TODO: Add AprilTag detection functionality here, including a method to initialize the
-    // VisionPortal and AprilTagProcessor objects
+    // Initialize VisionPortal and AprilTagProcessor objects
+    private void initVision() {
+
+        // Create and build an AprilTag processor for each camera.
+        aprilTagCam1 = new AprilTagProcessor.Builder()
+
+                // The following default settings are available to un-comment and edit as needed.
+                //.setDrawAxes(false)
+                //.setDrawCubeProjection(false)
+                .setDrawTagOutline(false)
+                //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+                //.setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
+                .setOutputUnits(DistanceUnit.MM, AngleUnit.RADIANS)
+                .setCameraPose(cam1Position, cam1Orientation)
+                // == CAMERA CALIBRATION ==
+                // If you do not manually specify calibration parameters, the SDK will attempt
+                // to load a predefined calibration for your camera.
+                //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
+                // ... these parameters are fx, fy, cx, cy.
+                .build();
+
+        // Adjust Image Decimation to trade-off detection-range for detection-rate.
+        // eg: Some typical detection data using a Logitech C920 WebCam
+        // Decimation = 1 ..  Detect 2" Tag from 10 feet away at 10 Frames per second
+        // Decimation = 2 ..  Detect 2" Tag from 6  feet away at 22 Frames per second
+        // Decimation = 3 ..  Detect 2" Tag from 4  feet away at 30 Frames Per Second (default)
+        // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second (default)
+        // Note: Decimation can be changed on-the-fly to adapt during a match.
+        //aprilTag.setDecimation(3);
+
+        // setup webcam references for each camera
+        webcam1 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1");
+        CameraName switchableCamera = ClassFactory.getInstance()
+                .getCameraManager().nameForSwitchableCamera(webcam1);
+
+        // Create the vision portal by using a builder and setup for multiple webcams
+        visionPortal = new VisionPortal.Builder()
+                .setCamera(switchableCamera)
+
+                // un-comment and edit the following default settings as needed
+                .enableLiveView(false) // Enable the RC preview (LiveView) - set "false" to omit camera monitoring
+                //.setStreamFormat(VisionPortal.StreamFormat.YUY2) // Set the stream format; MJPEG uses less bandwidth than default YUY2.
+                //.setAutoStopLiveView(false) //Choose whether or not LiveView stops if no processors are enabled.
+                .setCameraResolution(new Size(1920, 1080)) // camera resolution (for all cameras ???)
+                .addProcessor(aprilTagCam1)
+                .build();
+
+        // Disable the aprilTag processor(s) until a camera is selected
+        visionPortal.setProcessorEnabled(aprilTagCam1, false);
+    }
+
+    /**
+     * Turn on a specific camera for AprilTag detection. Activate the corresponding AprilTag
+     * detector as well.
+     * @param camera the number of the camera to use - 0 deactivates all cameras
+     */
+    public void switchCamera(int camera) {
+
+        // no need for anything fancy, just select the right camera and activate
+        // the corresponding AprilTag processor (and deactivate all others)
+        if (camera == 1) {
+            visionPortal.setActiveCamera(webcam1);
+            visionPortal.setProcessorEnabled(aprilTagCam1, true);
+        }
+        // if no camera specified, disable the AprilTag processor(s)
+        else if (camera == 0) {
+            visionPortal.stopStreaming();
+            visionPortal.setProcessorEnabled(aprilTagCam1, false);
+        }
+    }
+
+    /**
+     * Get AprilTag detections from the currently active camera.
+     */
+    public ArrayList<AprilTagDetection> getAprilTags() {
+        if (visionPortal.getProcessorEnabled(aprilTagCam1))
+            return aprilTagCam1.getDetections();
+        else
+            return new ArrayList<>();
+
+    }
+
 }
 
 /**
