@@ -10,7 +10,9 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
+import java.util.List;
 import java.util.Timer;
 
 /*
@@ -32,13 +34,16 @@ public class MotionTest extends OpMode
     final private ElapsedTime runtime = new ElapsedTime();
     double speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
 
+    // flag for vision enabled
+    boolean visionEnabled = false;
+
     /*
      * Code to run ONCE when the driver hits INIT
      */
     @Override
     public void init() {
-        // initialize all the hardware, using the hardware class. See how clean and simple this is?
-        robot.init();
+        // initialize all the hardware, including vision
+        robot.init(true);
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
@@ -62,12 +67,6 @@ public class MotionTest extends OpMode
 
         // reset the odometry counters to 0
         robot.resetOdometryCounters();
-
-        // Set the initial position of the robot on the field
-        // NOTE: There should be a "testing" position for running this opmode that is marked on the
-        // field (e.g., with gaffers tape) so that the robot can be placed in the same position each
-        // time.
-        robot.setFieldPosition(0, 0, 0);
     }
 
     /*
@@ -82,6 +81,18 @@ public class MotionTest extends OpMode
         // check whether the right bumper is pressed and reset the odometry counters to 0
         if (gamepad1.right_bumper && !lastGamepad1.right_bumper) {
             robot.resetOdometryCounters();
+        }
+
+        // check whether the left  bumper is pressed and toggle AprilTag detection
+        if (gamepad1.left_bumper && !lastGamepad1.left_bumper) {
+            if (!visionEnabled) {
+                robot.switchCamera(1);
+                visionEnabled = true;
+            }
+            else {
+                robot.switchCamera(0);
+                visionEnabled = false;
+            }
         }
 
         // check whether the x button is pressed and change the speed factor to davis speed
@@ -130,7 +141,11 @@ public class MotionTest extends OpMode
         telemetry.addData("Status", "Running (%s)", runtime.toString());
         telemetry.addData("Raw Encoders", "Left: %d, Right: %d, Aux: %d", robot.lastLeftEncoderPosition, robot.lastRightEncoderPosition, robot.lastAuxEncoderPosition);
         telemetry.addData("Odometry", "x: %f mm, y: %f mm, hdg: %f rad", robot.getOdometryX(), robot.getOdometryY() , robot.getOdometryHeading());
-        telemetry.addData("Field Position", "x: %f mm, y: %f mm, hdg: %f °", robot.getFieldPosX(), robot.getFieldPosY() , robot.getFieldHeading(AngleUnit.DEGREES));
+
+        // if vision is enabled, add AprilTag telemetry
+        if(visionEnabled) {
+            addAprilTagTelemetry();
+        }
     }
 
     /*
@@ -147,6 +162,38 @@ public class MotionTest extends OpMode
 
         telemetry.addData("Status", "Stopped. Total Runtime: (%s)", runtime.toString());
         telemetry.addData("Odometry", "x: %f mm, y: %f mm, hdg: %f rad", robot.getOdometryX(), robot.getOdometryY() , robot.getOdometryHeading());
-        telemetry.addData("Field Position", "x: %f mm, y: %f mm, hdg: %f °", robot.getFieldPosX(), robot.getFieldPosY() , robot.getFieldHeading(AngleUnit.DEGREES));
+        // if vision is enabled, add AprilTag telemetry
+        if(visionEnabled) {
+            addAprilTagTelemetry();
+        }
+    }
+
+    private void addAprilTagTelemetry() {
+
+        // Get the list of current AprilTag detections
+        List<AprilTagDetection> aprilTags = robot.getAprilTags();
+        telemetry.addData("# AprilTags Detected", aprilTags.size());
+
+        // Step through the list of detections and display info for each one.
+        for (AprilTagDetection tag : aprilTags) {
+            if (tag.metadata != null) {
+                telemetry.addLine(String.format("\n==== (ID %d) %s @ %6.1f degrees",
+                        tag.id,
+                        tag.metadata.name,
+                        tag.ftcPose.bearing
+                    )
+                );
+                telemetry.addLine(String.format("X: %6.1f mm, Y: %6.1f mm, H: %1.3f rad",
+                        tag.robotPose.getPosition().x,
+                        tag.robotPose.getPosition().y,
+                        tag.robotPose.getOrientation().getYaw(AngleUnit.RADIANS)
+                    )
+                );
+            }
+            else {
+                telemetry.addLine(String.format("\n==== (ID %d) Unknown @ %6.1f degrees", tag.id, tag.ftcPose.bearing));
+                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", tag.center.x, tag.center.y));
+            }
+        }
     }
 }

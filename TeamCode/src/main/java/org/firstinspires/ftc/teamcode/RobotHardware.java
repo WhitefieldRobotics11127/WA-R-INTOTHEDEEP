@@ -49,6 +49,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -232,9 +233,9 @@ public class RobotHardware {
     // it's pointing straight left, -90 degrees for straight right, etc. You can also set the roll
     // to +/-90 degrees if it's vertical, or 180 degrees if it's upside-down.
     //
-    private Position cam1Position = new Position(DistanceUnit.MM,
+    private final Position cam1Position = new Position(DistanceUnit.MM,
             0, 22.5, 10.5, 0);
-    private YawPitchRollAngles cam1Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+    private final YawPitchRollAngles cam1Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             90, -90, 0, 0);
 
     /*
@@ -299,8 +300,9 @@ public class RobotHardware {
     /**
      * Initialize all the robot's hardware.
      * This method must be called ONCE when the OpMode is initialized.
+     * @param vision true if vision processing is needed, false otherwise
      */
-    public void init()    {
+    public void init(boolean vision) {
 
         // Define Mecanum drivetrain hardware instance variables
         leftFrontDrive  = myOpMode.hardwareMap.get(DcMotorEx.class, "leftfront_drive");
@@ -413,7 +415,16 @@ public class RobotHardware {
         //);
 
         // Initialize the vision portal and the AprilTag processor(s)
-        initVision();
+        if (vision)
+            initVision();
+    }
+
+    /**
+     * Initialize all the robot's hardware.
+     * This method must be called ONCE when the OpMode is initialized.
+     */
+    public void init() {
+        init(false);
     }
 
     /* ----- Low level motion methods for four-motor Mecanum drive train ----- */
@@ -551,19 +562,17 @@ public class RobotHardware {
 
         // update the current position in field coordinate system from the deltas
         // NOTE: disable this code for now since we are not using the field position and it may be
-        // making the runtime too long. Ultimately we may want to store the field position in a
-        // structure that is not as intensive to update (i.e., one where a new object instance
-        // doesn't have to be created each time).
-        /*
-        double theta = currentFieldPosition.getHeading(AngleUnit.RADIANS) + (dtheta / 2);
-        double newX = currentFieldPosition.getX(DistanceUnit.MM) + dx * Math.cos(theta) - dy * Math.sin(theta);
-        double newY = currentFieldPosition.getY(DistanceUnit.MM) + dx * Math.sin(theta) + dy * Math.cos(theta);
-        double newHeading = (currentFieldPosition.getHeading(AngleUnit.RADIANS) + dtheta) % (2.0 * Math.PI); // normalize to [0, 2pi)
-        if(newHeading < 0) {
-            newHeading += 2.0 * Math.PI;
-        }
-        currentFieldPosition = new Pose2D(DistanceUnit.MM, newX, newY, AngleUnit.RADIANS, newHeading);
-        */
+        // making the runtime too long.
+        // NOTE: We may want to store the field position in a structure that is not as intensive to
+        // update (i.e., one where a new object instance doesn't have to be created each time).
+        //double theta = currentFieldPosition.getHeading(AngleUnit.RADIANS) + (dtheta / 2);
+        //double newX = currentFieldPosition.getX(DistanceUnit.MM) + dx * Math.cos(theta) - dy * Math.sin(theta);
+        //double newY = currentFieldPosition.getY(DistanceUnit.MM) + dx * Math.sin(theta) + dy * Math.cos(theta);
+        //double newHeading = (currentFieldPosition.getHeading(AngleUnit.RADIANS) + dtheta) % (2.0 * Math.PI); // normalize to [0, 2pi)
+        //if(newHeading < 0) {
+        //    newHeading += 2.0 * Math.PI;
+        //}
+        //currentFieldPosition = new Pose2D(DistanceUnit.MM, newX, newY, AngleUnit.RADIANS, newHeading);
     }
 
     /**
@@ -724,28 +733,26 @@ public class RobotHardware {
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (!xController.isWithinTolerance(xOdometryCounter) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle()
+        // in the loop
+        while (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) {
 
-            // Update the odometry counters
+            // update odometry counters
             updateOdometry();
+
+            // If we have reached the desired position, break out of the loop
+            if (xController.isWithinTolerance(xOdometryCounter))
+                break;
 
             // Calculate the control output for each of the three controllers
             double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
             //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
-            double yPower = 0;
+            double yPower = 0.0;
             //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
-            double yawPower = 0;
+            double yawPower = 0.0;
 
             // Move the robot based on the calculated powers
             move(xPower, yPower, yawPower, speed);
-
-            // If we are in a linear opmode, sleep for a short time to allow the robot to move
-            // and/or for the encoder wheels to update their position.
-            // NOTE: Need to look into what's needed/efficient here: sleep(), idle(), or nothing
-            if (isLinearOpMode) {
-                //((LinearOpMode) myOpMode).sleep(50);
-                ((LinearOpMode) myOpMode).idle();
-            }
         }
 
         // stop movement of the robot
@@ -773,29 +780,26 @@ public class RobotHardware {
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (!yController.isWithinTolerance(xOdometryCounter) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle()
+        // in the loop
+        while (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) {
 
             // Update the odometry counters
             updateOdometry();
 
+            // If we have reached the desired position, break out of the loop
+            if (yController.isWithinTolerance(yOdometryCounter))
+                break;
+
             // Calculate the control output for each of the three controllers
-            //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
-            double xPower = 0;
+            //xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
+            double xPower = 0.0;
             double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
             //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
-            double yawPower = 0;
+            double yawPower = 0.0;
 
             // Move the robot based on the calculated powers
             move(xPower, yPower, yawPower, speed);
-
-            // If we are in a linear opmode, sleep for a short time to allow the robot to move
-            // and/or for the encoder wheels to update their position.
-            // NOTE: Need to look into more what's needed/efficient here: sleep(), idle(), or nothing
-            // at all.
-            if (isLinearOpMode) {
-                //((LinearOpMode) myOpMode).sleep(50);
-                ((LinearOpMode) myOpMode).idle();
-            }
         }
 
         // stop the robot
@@ -816,7 +820,6 @@ public class RobotHardware {
         //PController yController = new PController(0.0, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
         PController yawController = new PController(angle, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
-
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
 
@@ -824,30 +827,27 @@ public class RobotHardware {
         resetOdometryCounters();
 
         // Loop until the robot has reached the desired position
-        while (!yawController.isWithinTolerance(headingOdometryCounter) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle()
+        // in the loop
+        while (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) {
 
             // Update the odometry counters
             updateOdometry();
 
+            // If we have reached the desired position, break out of the loop
+            if (yawController.isWithinTolerance(headingOdometryCounter))
+                break;
+
             // Calculate the control output for each of the three controllers
             //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
-            double xPower = 0;
+            double xPower = 0.0;
             //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
-            double yPower = 0;
+            double yPower = 0.0;
             double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
 
             // Move the robot based on the calculated powers
-            // NOTE: We reduced the yaw power by 40% to make the robot turn more slowly and accurately
+            // NOTE: We reduced the yaw power by 70% to make the robot turn more slowly and accurately
             move(xPower, yPower, yawPower, speed * 0.7);
-
-            // If we are in a linear opmode, sleep for a short time to allow the robot to move
-            // and/or for the encoder wheels to update their position.
-            // NOTE: Need to look into more what's needed/efficient here: sleep(), idle(), or nothing
-            // at all.
-            if (isLinearOpMode) {
-                //((LinearOpMode) myOpMode).sleep(50);
-                ((LinearOpMode) myOpMode).idle();
-            }
         }
 
         // stop the robot
@@ -857,28 +857,110 @@ public class RobotHardware {
     /* ----- High-level movement methods for autonomous motion ----- */
 
     /**
-     * Move robot to specified field coordinate position (X, Y) and heading in MM and radians.
+     * Move robot to specified field coordinate position (X, Y) and heading in MM and radians based
+     * on the specified AprilTag detected by specified camera.
      * This method should only be called from a LinerOpMode and implements its own
      * loop to cover the robots motion to the specified position.
      * @param x x-coordinate of center of robot in field coordinates (MM)
      * @param y y-coordinate of center of robot in field coordinates (MM)
      * @param heading current angle of robot relative to positive x-axis in field coordinates (rad)
+     * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
      * @param speed Speed factor to apply (should use defined constants)
      */
-    public void moveToPositionUsingAprilTag(double x, double y, double heading, int camera, double speed) {
+    public void moveToPositionUsingAprilTag(double x, double y, double heading, int camera, int tagID, double speed) {
 
         // Proportional controllers for x, y, and yaw
+        // Do we want more precise tolerances and/or deadbands here?
         PController xController = new PController(x, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
         PController yController = new PController(y, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
         PController yawController = new PController(heading, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
+        // Maximum number of times the specified tag was not detected before breaking out of the loop
+        final int MAX_NODETECTION_COUNT = 3;
+
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
 
-        // activate april tag detection
-        AprilTagDetector detector = new AprilTagDetector(myOpMode.hardwareMap, camera);
+        // If vision was not initialized or camera(s) are not enabled, then return
+        if (visionPortal == null || visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)
+            return;
 
+        // Switch to the specified camera
+        switchCamera(camera);
 
+        // Counter for the number of times the specified tag was not detected
+        int notDetectedCount = 0;
+
+        // Loop until the robot has reached the desired position
+        // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle()
+        // in the loop
+        while (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) {
+
+            // get the latest AprilTag detections
+            ArrayList<AprilTagDetection> aprilTags = getAprilTags();
+
+            // Find specified tag in the current detections (or set the first one found if no tag
+            // ID specified)
+            AprilTagDetection target = null;
+            for (AprilTagDetection tag : aprilTags) {
+                if (tag.id == tagID || tagID == 0) {
+                    target = tag;
+                    break;  // don't look any further
+                }
+            }
+
+            // If the specified tag was detected, calculate robot movement
+            if (target != null) {
+
+                // retrieve the current field position of the robot
+                Pose3D currentPos = aprilTags.get(0).robotPose;
+
+                // calculate error in the x, y, and heading from the current robot pose and the
+                // specified target position
+                // NOTE: The deltas (errors) for x and y in the robot's axes are calculated from the
+                // delta x and delta y in the field coordinate system by applying a rotation transform
+                // using the robot's current heading (in field coordinates):
+                double deltaX = x - currentPos.getPosition().x;
+                double deltaY = y - currentPos.getPosition().y;
+                double theta = currentPos.getOrientation().getYaw(AngleUnit.RADIANS);
+                double errorX = deltaX * Math.cos(theta) + deltaY * Math.sin(theta);
+                double errorY = -deltaX * Math.sin(theta) + deltaY * Math.cos(theta);
+                double errorH = heading - theta;
+
+                // If we have reached the desired position, break out of the loop
+                if (xController.isWithinTolerance(errorX) &&
+                        yController.isWithinTolerance(errorY) &&
+                        yawController.isWithinTolerance(errorH))
+                    break;
+
+                // Calculate the control output for each of the three controllers
+                double xPower = clip(xController.calculate(errorX), -1.0, 1.0);
+                double yPower = clip(yController.calculate(errorY), -1.0, 1.0);
+                double yawPower = clip(yawController.calculate(errorH), -1.0, 1.0);
+
+                // Move the robot based on the calculated powers
+                move(xPower, yPower, yawPower, speed);
+            }
+            else {
+                // If the specified tag was not detected, increment the counter
+                notDetectedCount++;
+
+                // If not detected counts exceeds maximum number of times, break out
+                // of the loop
+                if (notDetectedCount > MAX_NODETECTION_COUNT)
+                    break;
+            }
+
+            // Wait some time for robot to move and new AprilTag detections to be acquired
+            if(isLinearOpMode)
+                ((LinearOpMode) myOpMode).sleep(150);
+        }
+
+        // stop the robot
+        stop();
+
+        // Turn off AprilTag detection
+        switchCamera(0);
     }
 
     /* ----- Arm and claw control methods ----- */
@@ -954,34 +1036,37 @@ public class RobotHardware {
      */
     public void setArmRotation(double position) {
 
+        // Power for arm rotation motor
+        double power = 0.0;
+
+        // track current arm position
+        double currentPosition;
+
+        // Make sure the specified position is in the allowable range
+        position = clip(position, ARM_ROTATION_MIN, ARM_ROTATION_MAX);
+
+        // Proportional controller for the arm rotation position potentiometer
+        PController armRotationController = new PController(position, ARM_ROTATION_TOLERANCE, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP);
+
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
 
-        // Make sure it's in the allowable range
-        position = clip(position, ARM_ROTATION_MIN, ARM_ROTATION_MAX);
-
-        // Create a PID controller for the arm rotation position potentiometer
-        PController armRotationController = new PController(position, ARM_ROTATION_TOLERANCE, ARM_ROTATION_DEADBAND, ARM_ROTATION_KP);
-
-        // get the initial potentiometer value for the arm rotation angle
-        double armPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
-
         // Loop until the arm rotation has reached the desired position
-        while (armRotationController.isWithinTolerance(armPosition) && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+        // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle() in the loop
+        while (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) {
+
+            // Update the potentiometer value for the arm rotation angle
+            currentPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
+
+            // If we have reached the desired position, break out of the loop
+            if (armRotationController.isWithinTolerance(currentPosition))
+                break;
 
             // Calculate the voltage output for the arm rotation motor
-            double power = clip(armRotationController.calculate(armPosition), -1.0, 1.0);
+            power = clip(armRotationController.calculate(currentPosition), -1.0, 1.0);
 
             // Rotate the arm
             armRotationMotor.setPower(power * ARM_ROTATION_POWER_LIMIT_FACTOR);
-
-            // Give the arm some time to move
-            if (isLinearOpMode) {
-                ((LinearOpMode) myOpMode).idle();
-            }
-
-            // Update the potentiometer value for the arm rotation angle
-            armPosition = armRotationPositionSensor.getVoltage() / ARM_ROTATION_MAX_VOLTAGE;
         }
 
         // Stop the rotation of the arm
@@ -1170,49 +1255,53 @@ public class RobotHardware {
         // Create and build an AprilTag processor for each camera.
         aprilTagCam1 = new AprilTagProcessor.Builder()
 
-                // The following default settings are available to un-comment and edit as needed.
-                //.setDrawAxes(false)
-                //.setDrawCubeProjection(false)
-                .setDrawTagOutline(false)
-                //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
-                //.setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
-                .setOutputUnits(DistanceUnit.MM, AngleUnit.RADIANS)
-                .setCameraPose(cam1Position, cam1Orientation)
-                // == CAMERA CALIBRATION ==
-                // If you do not manually specify calibration parameters, the SDK will attempt
-                // to load a predefined calibration for your camera.
-                //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
-                // ... these parameters are fx, fy, cx, cy.
-                .build();
+            // un-comment and edit the following default settings as needed
+            //.setDrawAxes(false)
+            //.setDrawCubeProjection(false)
+            .setDrawTagOutline(false)
+            //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+            //.setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
+            .setOutputUnits(DistanceUnit.MM, AngleUnit.RADIANS)
+            .setCameraPose(cam1Position, cam1Orientation)
+            // If you do not manually specify calibration parameters, the SDK will attempt
+            // to load a predefined calibration for your camera.
+            //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
+            // ... these parameters are fx, fy, cx, cy.
+            .build();
 
-        // Adjust Image Decimation to trade-off detection-range for detection-rate.
+        // Adjust image decimation to trade-off detection-range for detection-rate.
         // eg: Some typical detection data using a Logitech C920 WebCam
         // Decimation = 1 ..  Detect 2" Tag from 10 feet away at 10 Frames per second
         // Decimation = 2 ..  Detect 2" Tag from 6  feet away at 22 Frames per second
         // Decimation = 3 ..  Detect 2" Tag from 4  feet away at 30 Frames Per Second (default)
         // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second (default)
         // Note: Decimation can be changed on-the-fly to adapt during a match.
-        //aprilTag.setDecimation(3);
+        //aprilTagCam1.setDecimation(3);
+        //aprilTagCam2.setDecimation(3);
 
         // setup webcam references for each camera
         webcam1 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1");
+        //webcam2 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 2");
         CameraName switchableCamera = ClassFactory.getInstance()
-                .getCameraManager().nameForSwitchableCamera(webcam1);
+            .getCameraManager().nameForSwitchableCamera(webcam1);
+            //.getCameraManager().nameForSwitchableCamera(webcam2);
 
         // Create the vision portal by using a builder and setup for multiple webcams
         visionPortal = new VisionPortal.Builder()
-                .setCamera(switchableCamera)
+            .setCamera(switchableCamera)
 
-                // un-comment and edit the following default settings as needed
-                .enableLiveView(false) // Enable the RC preview (LiveView) - set "false" to omit camera monitoring
-                //.setStreamFormat(VisionPortal.StreamFormat.YUY2) // Set the stream format; MJPEG uses less bandwidth than default YUY2.
-                //.setAutoStopLiveView(false) //Choose whether or not LiveView stops if no processors are enabled.
-                .setCameraResolution(new Size(1920, 1080)) // camera resolution (for all cameras ???)
-                .addProcessor(aprilTagCam1)
-                .build();
+            // un-comment and edit the following default settings as needed
+            .enableLiveView(false) // Enable the RC preview (LiveView) - set "false" to omit camera monitoring
+            //.setStreamFormat(VisionPortal.StreamFormat.YUY2) // Set the stream format; MJPEG uses less bandwidth than default YUY2.
+            //.setAutoStopLiveView(false) //Choose whether or not LiveView stops if no processors are enabled.
+            .setCameraResolution(new Size(1920, 1080)) // camera resolution (for all cameras ???)
+            .addProcessor(aprilTagCam1)
+            //.addProcessor(aprilTagCam2)
+            .build();
 
         // Disable the aprilTag processor(s) until a camera is selected
         visionPortal.setProcessorEnabled(aprilTagCam1, false);
+        //visionPortal.setProcessorEnabled(aprilTagCam2, false);
     }
 
     /**
@@ -1227,11 +1316,18 @@ public class RobotHardware {
         if (camera == 1) {
             visionPortal.setActiveCamera(webcam1);
             visionPortal.setProcessorEnabled(aprilTagCam1, true);
+            //visionPortal.setProcessorEnabled(aprilTagCam2, false);
         }
+        // if we have a second camera, activate it and its processor
+        //else if (camera == 2) {
+        //    visionPortal.setActiveCamera(webcam2);
+        //    visionPortal.setProcessorEnabled(aprilTagCam2, true);
+        //    visionPortal.setProcessorEnabled(aprilTagCam1, false);
+        //}
         // if no camera specified, disable the AprilTag processor(s)
         else if (camera == 0) {
-            visionPortal.stopStreaming();
             visionPortal.setProcessorEnabled(aprilTagCam1, false);
+            //visionPortal.setProcessorEnabled(aprilTagCam2, false);
         }
     }
 
@@ -1241,11 +1337,27 @@ public class RobotHardware {
     public ArrayList<AprilTagDetection> getAprilTags() {
         if (visionPortal.getProcessorEnabled(aprilTagCam1))
             return aprilTagCam1.getDetections();
+        //else-if (visionPortal.getProcessorEnabled(aprilTagCam2))
+        //    return aprilTagCam2.getDetections();
         else
             return new ArrayList<>();
-
     }
 
+    /**
+     * Enable video streaming for AprilTag detection
+     */
+    public void enableVision() {
+        visionPortal.resumeStreaming();
+    }
+
+    /**
+     * Disable video streaming for AprilTag detection
+     * Teleop OpModes may want to call this method to save hardware resources in teleop if
+     * no AprilTag processing is needed.
+     */
+    public void disableVision() {
+        visionPortal.stopStreaming();
+    }
 }
 
 /**

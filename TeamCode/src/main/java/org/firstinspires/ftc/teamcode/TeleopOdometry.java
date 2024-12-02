@@ -70,12 +70,6 @@ public class TeleopOdometry extends OpMode
         // Initialize the robot hardware through the RobotHardware class.
         robot.init();
 
-        // We need a way to retrieve the current Field Position from the Autonomous OpMode and
-        // set it here.
-        // NOTE: We need to set it to something because the get methods will fail if the object
-        // is not initialized. Should be fixed in RobotHardware class at some point.
-        robot.setFieldPosition(0, 0, 0);
-
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Hardware Initialized");
     }
@@ -98,14 +92,6 @@ public class TeleopOdometry extends OpMode
 
         // Reset the odometry counters to 0.
         robot.resetOdometryCounters();
-
-        // If we are wanting to set the robot's position on the field, we can do that here with a
-        // call to robot.setFieldPosition(). However, we really wouldn't know the robot's position
-        // on the field from the prior Autonomous OpMode, so there needs to be some communication
-        // of the robot's final state (including field position) from the Autonomous OpMode to this
-        // Teleop OpMode. Use of a Singleton class to store the robot's field position and/or other
-        // end-state values is one way to do this.
-        //robot.setFieldPosition(0, 0, 0);
 
         // ***** What's the current extension of the arm? We need some way to determine what the
         // encoder value is for the arm's extension motor before robot.init() because it is going

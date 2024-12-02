@@ -32,9 +32,6 @@ public class AutoOdometryTest extends LinearOpMode {
         // NOTE: This resets the odometry counters to zero
         robot.init();
 
-        // Set the initial field position of the robot
-        robot.setFieldPosition(-1050,-1275,0);
-
         // Update the status in telemetry
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -83,8 +80,6 @@ public class AutoOdometryTest extends LinearOpMode {
 
         // Display the time elapsed and final field position in telemetry
         telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Field Position", "X: %.1f  Y: %.1f  Theta: %.1f",
-                robot.getFieldPosX(), robot.getFieldPosY(), robot.getFieldHeading(AngleUnit.DEGREES));
         telemetry.update();
     }
 }
