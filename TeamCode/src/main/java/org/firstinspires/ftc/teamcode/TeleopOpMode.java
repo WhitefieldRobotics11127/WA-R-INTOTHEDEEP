@@ -47,7 +47,7 @@ public class TeleopOpMode extends OpMode
     //  - RobotHardware.MOTOR_SPEED_FACTOR_DAVIS: "Sprint" (fast) speed
     // This may also be displayed in telemetry data on the driver station.
     double speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
-
+    double loganButton = RobotHardware.MOTOR_SPEED_FACTOR_PRECISE;
     // A hashmap to store the speed factor names for display in telemetry data on the driver station.
     static final private HashMap<Double, String> speedFactorNames;
     static {
@@ -113,6 +113,7 @@ public class TeleopOpMode extends OpMode
         // A: Normal speed
         // B: Precise speed
         // X: Davis speed
+        // Y: D-Pad speed setter
         if(gamepad1.a && !lastGamepad1.a) {
             speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
         }
@@ -122,30 +123,45 @@ public class TeleopOpMode extends OpMode
         else if(gamepad1.b && !lastGamepad1.b) {
             speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_PRECISE;
         }
-
+        else if(gamepad1.y) {
+            loganButton = speedFactor;
+        }
+        else {
+            System.out.println("Logan probably messed up the code.");
+        }
         // If d-pad input provided, ignore joystick input(s)
         if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right) {
 
             // Move the robot in the direction of the d-pad button pressed at 1/2 precision speed
             if(gamepad1.dpad_up && !lastGamepad1.dpad_up) {
-                robot.move(1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE * 0.5);
+                robot.move(1, 0, 0, loganButton * 0.5);
             } else if(gamepad1.dpad_down && !lastGamepad1.dpad_down) {
-                robot.move(-1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE * 0.5);
+                robot.move(-1, 0, 0, loganButton * 0.5);
             } else if(gamepad1.dpad_left && !lastGamepad1.dpad_left) {
-                robot.move(0, 1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE * 0.5);
+                robot.move(0, 1, 0, loganButton * 0.5);
             } else if(gamepad1.dpad_right && !lastGamepad1.dpad_right) {
-                robot.move(0, -1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE * 0.5);
+                robot.move(0, -1, 0, loganButton * 0.5);
             }
 
-        } else {
 
-            // Use left joystick to go forward & strafe, and right joystick to rotate.
-            // NOTE: the robot.move() function takes values in FTC coordinate system values, where
-            // +x is forward, +y is left, and +yaw is counter-clockwise rotation.
-            double axial = -gamepad1.left_stick_y;  // pushing stick forward gives negative value
-            double lateral = -gamepad1.left_stick_x;  // pushing stick left gives negative value
-            double yaw = -gamepad1.right_stick_x;  // pushing stick left gives negative value
-            robot.move(axial, lateral, yaw, speedFactor);
+        } else {
+            // ignore right stick inputs if bumpers are pressed
+            if (gamepad1.right_bumper || gamepad1.left_bumper){
+                //rotate the bot
+               if (gamepad1.right_bumper)
+                   robot.move(0,0, 5, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+               else if(gamepad1.left_bumper)
+                   robot.move(0, 0, -5, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            }
+            else {
+                // Use left joystick to go forward & strafe, and right joystick to rotate.
+                // NOTE: the robot.move() function takes values in FTC coordinate system values, where
+                // +x is forward, +y is left, and +yaw is counter-clockwise rotation.
+                double axial = -gamepad1.left_stick_y;  // pushing stick forward gives negative value
+                double lateral = -gamepad1.left_stick_x;  // pushing stick left gives negative value
+                double yaw = -gamepad1.right_stick_x;  // pushing stick left gives negative value
+                robot.move(axial, lateral, yaw, speedFactor);
+            }
         }
 
         // ***** Handle arm and claw control from Gamepad2 *****

@@ -7,7 +7,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 /*
  * Autonomous OpMode for Rung operation in 2024-2025 INTO THE DEEP season.
  */
-
+/*
+The idea of this Class is to have a backup just in case we are not on the left.
+ */
 @Autonomous(name="Right-Side (Rung) Autonomous", group="Competition")
 //@Disabled
 
@@ -22,7 +24,6 @@ public class RungAutoOpMode extends LinearOpMode {
 
 
 
-    //@Override
 
     public void rungStrat() {
         //rotating the arm straight up
@@ -47,6 +48,8 @@ public class RungAutoOpMode extends LinearOpMode {
             robot.setArmRotation(0);
 
     }
+    @Override
+
     public void runOpMode() {
 
         // initialize all the hardware, using the hardware class. See how clean and simple this is?
