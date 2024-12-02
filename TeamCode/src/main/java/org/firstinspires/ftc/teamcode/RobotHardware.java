@@ -73,7 +73,6 @@ public class RobotHardware {
     public static final double MOTOR_SPEED_FACTOR_PRECISE = 0.35;
     /** Separate speed for Autonomous movement commands to use. */
     public static final double MOTOR_SPEED_FACTOR_AUTONOMOUS = 0.5;
-
     // Allowable limits for arm rotation
     // NOTE: These are [0, 1) within voltage rage of potentiometer
     /** 
