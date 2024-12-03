@@ -149,9 +149,9 @@ public class TeleopOpMode extends OpMode
             if (gamepad1.right_bumper || gamepad1.left_bumper){
                 //rotate the bot
                if (gamepad1.right_bumper)
-                   robot.move(0,0, 5, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+                   robot.move(0,0, 1, loganButton * 0.5);
                else if(gamepad1.left_bumper)
-                   robot.move(0, 0, -5, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+                   robot.move(0, 0, -1, loganButton * 0.5);
             }
             else {
                 // Use left joystick to go forward & strafe, and right joystick to rotate.
