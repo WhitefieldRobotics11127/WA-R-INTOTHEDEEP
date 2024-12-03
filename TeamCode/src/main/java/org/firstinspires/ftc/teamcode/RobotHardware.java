@@ -215,25 +215,24 @@ public class RobotHardware {
     // Position and orientation of camera(s) on robot for AprilTag detection and field position
     // calculation
     // NOTE: These values relate the position and orientation of the center of the camera lens
-    // relative to the the robot on three axes. We are using definitions from gm0 and WPILib, which
-    // is different than the provided ConceptAprilTag example code:
-    //  Origin location: Center of rotation of the robot at field height
-    //  Axes orientation: +x forward, +y left, +z upward
+    // relative to the the robot on three axes. This uses the definition of robot axes used in FTC:
+    //      Origin location: Center of rotation of the robot at field height
+    //      Axes orientation: +x right, +y forward, +z upward
+    // These are different than the robot axes definitions we use for motion from gm0 and WPILib.
     //
-    // Position:
-    // If all values are zero (no translation), that implies the camera is at the rotational center
-    // of the robot. Suppose your camera is positioned 5 inches to the left, 7 inches forward, and
-    // 12 inches above the ground - you would need to set the position to (7, 5, 12).
+    // Thus for position:
+    // If all values are zero (no translation), that implies the camera is at the center of the
+    // robot. Suppose your camera is positioned 5 inches to the left, 7 inches forward, and 12
+    // inches above the ground - you would need to set the position to (-5, 7, 12).
     //
-    // Orientation:
+    // And for orientation:
     // If all values are zero (no rotation), that implies the camera is pointing straight up. In
-    // most cases, you'll need to set the pitch to 90 degrees (rotation about the y-axis), meaning
+    // most cases, you'll need to set the pitch to -90 degrees (rotation about the x-axis), meaning
     // the camera is horizontal. Use a yaw of 0 if the camera is pointing forwards, +90 degrees if
     // it's pointing straight left, -90 degrees for straight right, etc. You can also set the roll
     // to +/-90 degrees if it's vertical, or 180 degrees if it's upside-down.
-    //
     private final Position cam1Position = new Position(DistanceUnit.MM,
-            0, 22.5, 10.5, 0);
+            -190, -22.5, 55.0, 0);
     private final YawPitchRollAngles cam1Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             90, -90, 0, 0);
 
@@ -1291,7 +1290,7 @@ public class RobotHardware {
 
             // un-comment and edit the following default settings as needed
             .enableLiveView(false) // Enable the RC preview (LiveView) - set "false" to omit camera monitoring
-            //.setStreamFormat(VisionPortal.StreamFormat.YUY2) // Set the stream format; MJPEG uses less bandwidth than default YUY2.
+            .setStreamFormat(VisionPortal.StreamFormat.MJPEG) // Set the stream format; MJPEG uses less bandwidth than default YUY2.
             //.setAutoStopLiveView(false) //Choose whether or not LiveView stops if no processors are enabled.
             .setCameraResolution(new Size(1920, 1080)) // camera resolution (for all cameras ???)
             .addProcessor(aprilTagCam1)

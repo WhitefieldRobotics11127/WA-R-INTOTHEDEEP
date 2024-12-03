@@ -78,13 +78,13 @@ public class MotionTest extends OpMode
         // update the odometry for the robot
         robot.updateOdometry();
 
-        // check whether the right bumper is pressed and reset the odometry counters to 0
-        if (gamepad1.right_bumper && !lastGamepad1.right_bumper) {
+        // check whether the right trigger is pressed and reset the odometry counters to 0
+        if (gamepad1.right_trigger >= 0.4 && lastGamepad1.right_trigger < 0.4) {
             robot.resetOdometryCounters();
         }
 
-        // check whether the left  bumper is pressed and toggle AprilTag detection
-        if (gamepad1.left_bumper && !lastGamepad1.left_bumper) {
+        // check whether the left trigger is pressed and toggle AprilTag detection
+        if (gamepad1.left_trigger >= 0.4 && lastGamepad1.left_trigger < 0.4) {
             if (!visionEnabled) {
                 robot.switchCamera(1);
                 visionEnabled = true;
@@ -109,20 +109,24 @@ public class MotionTest extends OpMode
         }
         //
 
-        // If d-pad input provided, ignore joystick input(s)
-        if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right) {
+        // If d-pad or bumper input provided, ignore joystick input(s)
+        if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right ||gamepad1.left_bumper || gamepad1.right_bumper) {
 
             // Move the robot in the direction of the d-pad button pressed at precision speed
-            if(gamepad1.dpad_up && !lastGamepad1.dpad_up) {
+            if(gamepad1.dpad_up && !lastGamepad1.dpad_up)
                 robot.move(1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
-            } else if(gamepad1.dpad_down && !lastGamepad1.dpad_down) {
+            else if(gamepad1.dpad_down && !lastGamepad1.dpad_down)
                 robot.move(-1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
-            } else if(gamepad1.dpad_left && !lastGamepad1.dpad_left) {
+            else if(gamepad1.dpad_left && !lastGamepad1.dpad_left)
                 robot.move(0, 1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
-            } else if(gamepad1.dpad_right && !lastGamepad1.dpad_right) {
+            else if(gamepad1.dpad_right && !lastGamepad1.dpad_right)
                 robot.move(0, -1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
-            }
-        } else {
+            else if(gamepad1.left_bumper && !lastGamepad1.left_bumper)
+                robot.move(0, 0, 1, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            else if(gamepad1.right_bumper && !lastGamepad1.right_bumper)
+                robot.move(0, 0, -1, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+        }
+        else {
 
             // Use left joystick to go forward & strafe, and right joystick to rotate.
             // Note that the robot.move() function takes values in FTC coordinate system values, where
@@ -177,7 +181,7 @@ public class MotionTest extends OpMode
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection tag : aprilTags) {
             if (tag.metadata != null) {
-                telemetry.addLine(String.format("\n==== (ID %d) %s @ %6.1f degrees",
+                telemetry.addLine(String.format("\n==== (ID %d) %s @ %1.3f rad",
                         tag.id,
                         tag.metadata.name,
                         tag.ftcPose.bearing
@@ -192,7 +196,7 @@ public class MotionTest extends OpMode
             }
             else {
                 telemetry.addLine(String.format("\n==== (ID %d) Unknown", tag.id));
-                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", tag.center.x, tag.center.y));
+                telemetry.addLine(String.format("Center %6.0f %6.0f (pixels)", tag.center.x, tag.center.y));
             }
         }
     }
