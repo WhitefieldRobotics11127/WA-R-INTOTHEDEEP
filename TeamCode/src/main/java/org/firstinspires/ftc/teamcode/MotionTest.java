@@ -191,7 +191,7 @@ public class MotionTest extends OpMode
                 );
             }
             else {
-                telemetry.addLine(String.format("\n==== (ID %d) Unknown @ %6.1f degrees", tag.id, tag.ftcPose.bearing));
+                telemetry.addLine(String.format("\n==== (ID %d) Unknown", tag.id));
                 telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", tag.center.x, tag.center.y));
             }
         }
