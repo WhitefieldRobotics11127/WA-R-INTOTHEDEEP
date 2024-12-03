@@ -148,7 +148,7 @@ public class RobotHardware {
     static final int DEADWHEEL_RIGHT_DIRECTION = -1; // Allows for adjustment of + direction of right encoder - should be installed front to back
     static final int DEADWHEEL_AUX_DIRECTION = -1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
     // The following values were calibrated for the unladen (no arm/claw assembly) robot on 10/29/2024
-    static final double DEADWHEEL_MM_PER_TICK = 0.07512; // MM per encoder tick (initially calculated 48MM diameter wheel @ 2000 ticks per revolution)
+    static final double DEADWHEEL_MM_PER_TICK = 0.07486; // MM per encoder tick (initially calculated 48MM diameter wheel @ 2000 ticks per revolution)
     static final double DEADWHEEL_FORWARD_OFFSET = -106.0; //forward offset (length B) of aux deadwheel from robot center of rotation in MM (negative if behind)
     static final double DEADWHEEL_TRACKWIDTH = 308.4; // distance (length L) between left and right deadwheels in MM
 
@@ -232,9 +232,9 @@ public class RobotHardware {
     // it's pointing straight left, -90 degrees for straight right, etc. You can also set the roll
     // to +/-90 degrees if it's vertical, or 180 degrees if it's upside-down.
     private final Position cam1Position = new Position(DistanceUnit.MM,
-            -190, -22.5, 55.0, 0);
+            -201.6, -30.2, 101.6, 0);
     private final YawPitchRollAngles cam1Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
-            90, -90, 0, 0);
+            0, -90, 0, 0);
 
     /*
      * Hardware objects for current robot hardware.
