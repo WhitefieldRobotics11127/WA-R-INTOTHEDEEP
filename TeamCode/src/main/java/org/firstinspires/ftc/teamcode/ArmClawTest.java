@@ -102,7 +102,7 @@ public class ArmClawTest extends OpMode
 
             // Reset the encoder if the A button is pressed
             if (gamepad1.a) {
-                robot.resetArmLimitsRetracted();
+                robot.resetArmLimits();
             }
 
             // If a particular position for the arm extension is desired, set it using the

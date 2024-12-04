@@ -33,7 +33,7 @@ public class RungAutoOpMode extends LinearOpMode {
         if(opModeIsActive())
             robot.move(500, 0,0,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         if(opModeIsActive())
-            robot.setArmExtension(robot.ARM_EXTENSION_MAX);
+            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT);
         //pull arm down to place the specimen on the rung (PROCEED WITH CAUTION)
         if(opModeIsActive())
             robot.setArmExtension(2204);

@@ -43,7 +43,7 @@ public class BucketAutoOpMode extends LinearOpMode {
             robot.forward(-90, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
         //retract the arm
         if (opModeIsActive())
-            robot.setArmExtension(robot.ARM_EXTENSION_MIN);
+            robot.setArmExtension(0);
         //rotate arm back
         if (opModeIsActive())
             robot.setArmRotation(RobotHardware.ARM_ROTATION_MIN);
