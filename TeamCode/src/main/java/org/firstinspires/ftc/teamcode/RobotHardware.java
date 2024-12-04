@@ -89,32 +89,23 @@ public class RobotHardware {
     public static final double ARM_ROTATION_MAX = 0.39;
 
     // Encoder limits for extension of arm.
-    /** Encoder position for fully extended viper slide (arm).
-     * NOTE: This assumes that fully retracted is currently set as the 0, encoder value. But
-     * see notes for ARM_EXTENSION_MAX and ARM_EXTENSION_MIN for how this can change. Also, this
-     * value is set lower than the physical extension limit to fit into the 42" lateral reach
-     * limit in the FTC rules. Use the extendArmToLimit button to */
-    public static final int ARM_EXTENSION_LIMIT = 2640;
-    // This limit is used for "full" extension and should only be used when the arm is upright.
-    private static final int ARM_EXTENSION_LIMIT_FULL = 2940;
-
-    // Min and max limits for encoder values for extension motor
-    // NOTE: These values are not static or final because they may be swapped by the reset functions
-    // depending on whether it is an extended reset or a retracted reset. The ARM_EXTENSION_MIN
-    // should initially be set to 0 and the ARM_EXTENSION_MAX should be set to ARM_EXTENSION_LIMIT
-    // based on a fully retracted position of the viper slide when the hardware is initialized.
     /**
-     * Maximum safe value for arm extension position.
-     * NOTE: This may change from ARM_EXTENSION_LIMIT to 0 when arm extension encoder is reset 
-     * depending on the position of the arm (fully extended or fully retracted) at reset.
-     */    
-    public int ARM_EXTENSION_MAX = ARM_EXTENSION_LIMIT;
-    /**
-     * Minimum safe value for arm extension position.
-     * NOTE: This may change from 0 to -ARM_EXTENSION_LIMIT when arm extension encoder is reset 
-     * depending on the position of the arm (fully extended or fully retracted) at reset.
+     * Encoder position for fully extended viper slide (arm) when horizontal.
+     * This value is set lower than the physical extension limit to fit into the 42" lateral reach
+     * limit in the FTC rules. Use the extendArmToLimit() method to extend the arm to the maximum
+     * allowable limit based on the arm rotation position.
+     * NOTE: This assumes that the fully retracted is currently set as 0 encoder value.
      */
-    public int ARM_EXTENSION_MIN = 0;
+    public static final int ARM_EXTENSION_LIMIT = 2640;
+    /**
+     * Encoder position for fully extended viper slide (arm) when vertical.
+     * This value is the maximum physical extension limit and is not subject the 42" limit of the
+     * FTC rules when the arm is vertical. This can be used, e.g., when reaching for the the top
+     * bucket on the INTOTHEDEEP field. Use the extendArmToLimit() method to extend the arm to the
+     * maximum allowable limit based on the arm rotation position.
+     * NOTE: This assumes that the fully retracted is currently set as 0 encoder value.
+     */
+    public static final int ARM_EXTENSION_LIMIT_FULL = 2940;
 
     // Servo positions for claw
     // NOTE: these are [0, 1) within the min and max range set for the servo
@@ -288,6 +279,12 @@ public class RobotHardware {
 
     // keep a reference to the calling opmode so that we have access to hardwareMap and other
     // properties and statuses from the running opmode.
+
+    // flag to allow for suspension of arm extension limits. This is used to allow the viper slide
+    // to be re-homed and the limits to be reset, particularly after the transition from autonomous
+    // to teleop when the robot is reinitialized.
+    private boolean armExtensionLimitsSuspended = false;
+
     private final OpMode myOpMode;
 
     /**
@@ -998,9 +995,9 @@ public class RobotHardware {
         double error;
 
         if (power < 0.0)
-            error = currentPosition - ARM_EXTENSION_MIN;
+            error = currentPosition - ((armExtensionLimitsSuspended) ? -ARM_EXTENSION_LIMIT_FULL : 0);
         else
-            error = ARM_EXTENSION_MAX - currentPosition;
+            error = ((armExtensionLimitsSuspended) ? ARM_EXTENSION_LIMIT_FULL : ARM_EXTENSION_LIMIT) - currentPosition;
 
         if (Math.abs(error) > ARM_EXTENSION_DEADBAND)
             armExtensionMotor.setPower(power * clip(ARM_EXTENSION_KP * error, -1.0,1.0) * ARM_EXTENSION_POWER_LIMIT_FACTOR);
@@ -1023,7 +1020,7 @@ public class RobotHardware {
     public void extendArmToPosition(int position) {
 
         // make sure the position is within the allowable range
-        position = clip(position, ARM_EXTENSION_MIN, ARM_EXTENSION_MAX);
+        position = clip(position, 0, ARM_EXTENSION_LIMIT_FULL);
 
         // set up the motor for run to position with the target encoder position
         armExtensionMotor.setTargetPosition(position);
@@ -1094,6 +1091,9 @@ public class RobotHardware {
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
 
+        // make sure the position is within the allowable range
+        position = clip(position, 0, ARM_EXTENSION_LIMIT_FULL);
+
         // set up the motor for run to position with the target encoder position
         armExtensionMotor.setTargetPosition(position);
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
@@ -1131,9 +1131,8 @@ public class RobotHardware {
      */
     public void suspendArmLimits() {
 
-        // reset the max and min to full limit values
-        ARM_EXTENSION_MAX = ARM_EXTENSION_LIMIT_FULL;
-        ARM_EXTENSION_MIN = -ARM_EXTENSION_LIMIT_FULL;
+        // set the flag to suspend the limits
+        armExtensionLimitsSuspended = true;
     }
 
     /**
@@ -1145,12 +1144,11 @@ public class RobotHardware {
         // reset the encoder for the arm extension motor
         armExtensionMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
-        // reset the limit values accordingly
-        ARM_EXTENSION_MAX = ARM_EXTENSION_LIMIT;
-        ARM_EXTENSION_MIN = 0;
-
         // set the mode back to RUN_USING_ENCODER
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+
+        // reset the limit suspension flag
+        armExtensionLimitsSuspended = false;
     }
 
     /**

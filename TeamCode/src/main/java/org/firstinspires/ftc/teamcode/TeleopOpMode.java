@@ -207,9 +207,11 @@ public class TeleopOpMode extends OpMode
                 // the arm is considered vertical.
                 if (gamepad2.right_bumper)
                     robot.extendArmToLimit();
+
                 // if left bumper is pressed, fully retract the arm
                 else if (gamepad2.left_bumper)
-                    robot.extendArmToPosition(robot.ARM_EXTENSION_MIN);
+                    robot.extendArmToPosition(0);
+
                 // otherwise, move the arm extension by +/- 600 ticks
                 else {
                     int pos = robot.getArmExtension();

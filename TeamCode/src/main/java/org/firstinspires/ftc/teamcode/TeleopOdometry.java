@@ -134,24 +134,27 @@ public class TeleopOdometry extends OpMode
             speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_PRECISE;
         }
 
-        // If d-pad input provided, ignore joystick input(s)
-        if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right) {
+        // If d-pad or bumper input provided, ignore joystick input(s)
+        if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right ||gamepad1.left_bumper || gamepad1.right_bumper) {
 
-            // Move the robot in the direction of the d-pad button pressed at 1/2 precision speed
-            if(gamepad1.dpad_up && !lastGamepad1.dpad_up) {
-                robot.move(1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE * 0.5);
-            } else if(gamepad1.dpad_down && !lastGamepad1.dpad_down) {
-                robot.move(-1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE * 0.5);
-            } else if(gamepad1.dpad_left && !lastGamepad1.dpad_left) {
-                robot.move(0, 1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE * 0.5);
-            } else if(gamepad1.dpad_right && !lastGamepad1.dpad_right) {
-                robot.move(0, -1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE * 0.5);
-            }
-
-        } else {
+            // Move the robot in the direction of the d-pad button pressed at precision speed
+            if(gamepad1.dpad_up && !lastGamepad1.dpad_up)
+                robot.move(1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            else if(gamepad1.dpad_down && !lastGamepad1.dpad_down)
+                robot.move(-1, 0, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            else if(gamepad1.dpad_left && !lastGamepad1.dpad_left)
+                robot.move(0, 1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            else if(gamepad1.dpad_right && !lastGamepad1.dpad_right)
+                robot.move(0, -1, 0, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            else if(gamepad1.left_bumper && !lastGamepad1.left_bumper)
+                robot.move(0, 0, 1, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            else if(gamepad1.right_bumper && !lastGamepad1.right_bumper)
+                robot.move(0, 0, -1, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+        }
+        else {
 
             // Use left joystick to go forward & strafe, and right joystick to rotate.
-            // NOTE: the robot.move() function takes values in FTC coordinate system values, where
+            // Note that the robot.move() function takes values in FTC coordinate system values, where
             // +x is forward, +y is left, and +yaw is counter-clockwise rotation.
             double axial = -gamepad1.left_stick_y;  // pushing stick forward gives negative value
             double lateral = -gamepad1.left_stick_x;  // pushing stick left gives negative value
@@ -202,10 +205,12 @@ public class TeleopOdometry extends OpMode
                 // the arm is considered vertical.
                 if (gamepad2.right_bumper)
                     robot.extendArmToLimit();
-                    // if left bumper is pressed, fully retract the arm
+
+                // if left bumper is pressed, fully retract the arm
                 else if (gamepad2.left_bumper)
-                    robot.extendArmToPosition(robot.ARM_EXTENSION_MIN);
-                    // otherwise, move the arm extension by +/- 600 ticks
+                    robot.extendArmToPosition(0);
+
+                // otherwise, move the arm extension by +/- 600 ticks
                 else {
                     int pos = robot.getArmExtension();
                     if (gamepad2.dpad_up)
