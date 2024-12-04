@@ -178,41 +178,44 @@ public class TeleopOdometry extends OpMode
         }
         else {
 
-            // Reset the encoder value and limit values (ARM_EXTENSION_MAX and ARM_EXTENSION_MIN)
-            // on the arm extension motor depending on position of arm. This is used if the arm
-            // extension motor overruns full extension or retraction as indicated by the loud
-            // clicking sound of the belt drive. The associated reset button should be pressed
-            // based on the whether the overrun occurred during extension or retraction:
-            //  - A: Reset encoder position on full retraction
-            //  - B: Reset encoder position on full extension
+            // If the arm becomes outside of limits, e.g., as indicated by loud clicking sound of
+            // the belt drive, use the B button to suspend the limits and then fully retract (home)
+            // the arm. Then use the A button to reset the limit values (ARM_EXTENSION_MAX and
+            // ARM_EXTENSION_MIN) from the fully retracted (0) position.
             if (gamepad2.a && !lastGamepad2.a) {
-                robot.resetArmLimitsRetracted();
+                robot.resetArmLimits();
             }
             else if (gamepad2.b && !lastGamepad2.b) {
-                robot.resetArmLimitsExtended();
+                robot.suspendArmLimits();
             }
 
-            // If a particular position for the arm extension is desired, set it using the
-            // setArmExtension method
+            // If a particular position for the arm extension is desired, use the RUN_TO_POSITION
+            // capability of the motor/encoder to extend/retract the arm to the desired position
+            // in the background.
             if (gamepad2.left_bumper && !lastGamepad2.left_bumper ||
                     gamepad2.right_bumper && !lastGamepad2.right_bumper ||
                     gamepad2.dpad_up && !lastGamepad2.dpad_up ||
                     gamepad2.dpad_down && !lastGamepad2.dpad_down) {
 
-                int pos = robot.getArmExtension();
-                // bumpers move to the limits, dpad up and down move the arm extension by 300 ticks
-                if (gamepad2.left_bumper)
-                    pos = robot.ARM_EXTENSION_MIN;
-                else if (gamepad2.right_bumper)
-                    pos = robot.ARM_EXTENSION_MAX;
-                else if (gamepad2.dpad_up)
-                    pos += 600;
-                else if (gamepad2.dpad_down)
-                    pos -= 600;
+                // if right bumper is pressed, fully extend the arm. This is a separate operation
+                // because the limits change based on whether the current rotational position of
+                // the arm is considered vertical.
+                if (gamepad2.right_bumper)
+                    robot.extendArmToLimit();
+                    // if left bumper is pressed, fully retract the arm
+                else if (gamepad2.left_bumper)
+                    robot.extendArmToPosition(robot.ARM_EXTENSION_MIN);
+                    // otherwise, move the arm extension by +/- 600 ticks
+                else {
+                    int pos = robot.getArmExtension();
+                    if (gamepad2.dpad_up)
+                        pos += 600;
+                    else if (gamepad2.dpad_down)
+                        pos -= 600;
 
-                // Set the arm extension to the specified position
-                robot.extendArmToPosition(pos);
-                inArmExtensionOperation = true;
+                    // Set the arm extension to the specified position
+                    robot.extendArmToPosition(pos);
+                }
             }
 
             // otherwise, get the arm movement from the left stick

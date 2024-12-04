@@ -88,9 +88,15 @@ public class RobotHardware {
      */
     public static final double ARM_ROTATION_MAX = 0.39;
 
-    // Encoder limit for extension of arm.
-    /** Encoder position for fully extended viper slide (arm) assuming fully retracted is 0. */
-    public static final int ARM_EXTENSION_LIMIT = 2938;
+    // Encoder limits for extension of arm.
+    /** Encoder position for fully extended viper slide (arm).
+     * NOTE: This assumes that fully retracted is currently set as the 0, encoder value. But
+     * see notes for ARM_EXTENSION_MAX and ARM_EXTENSION_MIN for how this can change. Also, this
+     * value is set lower than the physical extension limit to fit into the 42" lateral reach
+     * limit in the FTC rules. Use the extendArmToLimit button to */
+    public static final int ARM_EXTENSION_LIMIT = 2640;
+    // This limit is used for "full" extension and should only be used when the arm is upright.
+    private static final int ARM_EXTENSION_LIMIT_FULL = 2940;
 
     // Min and max limits for encoder values for extension motor
     // NOTE: These values are not static or final because they may be swapped by the reset functions
@@ -184,6 +190,10 @@ public class RobotHardware {
     /*
      * Parameter values for arm (Viper-slide) and claw.
      */
+    // Arm rotation position where the arm is considered "vertical" for selectively applying the
+    // two limit values ARM_EXTENSION_LIMIT and ARM_EXTENSION_LIMIT_FULL to the arm extension motor.
+    static final double ARM_ROTATION_VERTICAL = 0.2;
+
     // Limit the power to the rotation motor to prevent damage to the arm. This needs to be calibrated.
     static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.6; // Factor to limit power to arm rotation motor
 
@@ -213,24 +223,17 @@ public class RobotHardware {
      * Constants for vision (AprilTag) processing.
      */
     // Position and orientation of camera(s) on robot for AprilTag detection and field position
-    // calculation
-    // NOTE: These values relate the position and orientation of the center of the camera lens
-    // relative to the the robot on three axes. This uses the definition of robot axes used in FTC:
-    //      Origin location: Center of rotation of the robot at field height
-    //      Axes orientation: +x right, +y forward, +z upward
-    // These are different than the robot axes definitions we use for motion from gm0 and WPILib.
-    //
-    // Thus for position:
-    // If all values are zero (no translation), that implies the camera is at the center of the
-    // robot. Suppose your camera is positioned 5 inches to the left, 7 inches forward, and 12
-    // inches above the ground - you would need to set the position to (-5, 7, 12).
-    //
-    // And for orientation:
-    // If all values are zero (no rotation), that implies the camera is pointing straight up. In
-    // most cases, you'll need to set the pitch to -90 degrees (rotation about the x-axis), meaning
-    // the camera is horizontal. Use a yaw of 0 if the camera is pointing forwards, +90 degrees if
-    // it's pointing straight left, -90 degrees for straight right, etc. You can also set the roll
-    // to +/-90 degrees if it's vertical, or 180 degrees if it's upside-down.
+    // calculation. These values relate the position of the center of the camera lens relative to
+    // the center of rotation of the robot at field height on three FTC-defined robot axes:
+    // +y forward, +x right, and +z upward, with orientation being: yaw about the z-axis, pitch
+    // about the x-axis, and roll about the y-axis.
+    // NOTE: This definition of the robot's axes are different than the UNW robot axes (+x forward,
+    // +y left) we use for motion that we got from gm0 and WPILib, so in order to make the heading
+    // value of the returned field pose correct for our robot, we need to skew the yaw by -90
+    // degrees in the orientation. Thus for a camera point left, the yaw is 0, pointing forward is
+    // -90, pointing right is 180 degrees, and pointing backward is 90 degrees. Also, a pitch of 0
+    // would have the camera pointing straight up, so we need to set the pitch to -90 degrees
+    // (rotation about the x-axis), meaning the camera is horizontal.
     private final Position cam1Position = new Position(DistanceUnit.MM,
             -201.6, -30.2, 101.6, 0);
     private final YawPitchRollAngles cam1Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
@@ -281,7 +284,7 @@ public class RobotHardware {
     // Current robot position (x,y, heading) in field coordinate system
     // NOTE: this is updated by the updateOdometry() method and used for translation and/or rotation
     // to field coordinates
-    private Pose2D currentFieldPosition = new Pose2D(DistanceUnit.MM, 0,0,AngleUnit.RADIANS,0);
+    //private Pose2D currentFieldPosition = new Pose2D(DistanceUnit.MM, 0,0,AngleUnit.RADIANS,0);
 
     // keep a reference to the calling opmode so that we have access to hardwareMap and other
     // properties and statuses from the running opmode.
@@ -611,101 +614,6 @@ public class RobotHardware {
      */
     public double getOdometryHeading() {
         return headingOdometryCounter;
-    }
-
-    /**
-     * Set the robot's position in the field coordinate system in MM and radians.
-     * This method should be called to initialize the robot's initial position from known starting
-     * position (e.g., from the field setup or from a known position on the field). This method may
-     * also be called when updating the robot's position from vision processing or other sensors.
-     * @param x x-coordinate of center of robot in field coordinates (MM)
-     * @param y y-coordinate of center of robot in field coordinates (MM)
-     * @param heading current angle of robot relative to positive x-axis in field coordinates (rad)
-     */
-    public void setFieldPosition(double x, double y, double heading) {
-        currentFieldPosition = new Pose2D(DistanceUnit.MM, x, y, AngleUnit.RADIANS, heading);
-    }
-
-    /**
-     * Set the robot's position in the field coordinate system in specified distance and angle
-     * units.
-     * @param x x-coordinate of center of robot in field coordinates
-     * @param y y-coordinate of center of robot in field coordinates
-     * @param dUnit distance unit for x and y coordinates
-     * @param heading current angle of robot relative to positive x-axis in field coordinates
-     * @param aUnit angle unit for heading
-     */
-    public void setFieldPosition(double x, double y, DistanceUnit dUnit, double heading, AngleUnit aUnit) {
-        currentFieldPosition = new Pose2D(dUnit, x, y, aUnit, heading);
-    }
-
-    /**
-     * Return current field position as a Pose2D object.
-     */
-    public Pose2D getCurrentFieldPosition() {
-        return currentFieldPosition;
-    }
-
-    /**
-     * Return X coordinate of current field position in MM units.
-     */
-    public double getFieldPosX() {
-        return currentFieldPosition.getX(DistanceUnit.MM);
-    }
-
-    /**
-     * Return X coordinate of current field position in specified units.
-     */
-    public double getFieldPosX(DistanceUnit distanceUnit) {
-        return currentFieldPosition.getX(distanceUnit);
-    }
-
-    /**
-     * Return Y coordinate of current field position in MM units.
-     */
-    public double getFieldPosY() {
-        return currentFieldPosition.getY(DistanceUnit.MM);
-    }
-
-    /**
-     * Return Y coordinate of current field position in specified units.
-     */
-    public double getFieldPosY(DistanceUnit distanceUnit) {
-        return currentFieldPosition.getY(distanceUnit);
-    }
-
-    /**
-     * Return heading of current field position. Best for performing higher level
-     * calculations and control.
-     */
-    public double getFieldHeading() {
-        return currentFieldPosition.getHeading(AngleUnit.RADIANS);
-    }
-
-    /**
-     * Return heading of current field position in specified units.
-     * This method converts the angle to FTC "rotational convention" angle, i.e.,
-     * (-180, 180] degrees or (-Pi, Pi] radians from +X axis - positive counter-clockwise. Best for
-     * display in telemetry.
-     * @param angleUnit the angle unit (AngleUnit.DEGREES or AngleUnit.RADIANS) in which to return the heading
-     */
-    public double getFieldHeading(AngleUnit angleUnit) {
-        if(angleUnit == AngleUnit.DEGREES) {
-            double theta = currentFieldPosition.getHeading(AngleUnit.DEGREES);
-            if (theta > 180) {
-                return -360 - theta;
-            } else {
-                return theta;
-            }
-        }
-        else {
-            double theta = currentFieldPosition.getHeading(AngleUnit.RADIANS);
-            if (theta > Math.PI) {
-                return -2 * Math.PI - theta;
-            } else {
-                return theta;
-            }
-        }
     }
 
     /* ----- Mid-level motion methods for autonomous motion ----- */
@@ -1103,8 +1011,13 @@ public class RobotHardware {
     /**
      * Use the motor controllers RUN_TO_POSITION function to extend the arm to the specified
      * position (encoder value).
-     * This function is for use in a Teleop OpMode and sets the target position and applies power.
-     * The calling OpMode must set the power on the motor back to zero when done (not busy).
+     * This function sets the target position and applies power. In a teleop OpMode, the calling
+     * method should call the stopArmExtension() method to set the power on the motor back to zero
+     * when the operation is done (based on isArmExtensionBusy() method). In a linear
+     * (autonomous) OpMode, this method should wait sufficient time for the extension operation to
+     * complete and then call stopArmExtension() method. This method should keep the arm in the
+     * specified position until the stopArmExtension() is called, so it may be handy when, e.g.,
+     * moving forward with the arm extended to hang a specimen or place a sample in a bucket.
      * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
      */
     public void extendArmToPosition(int position) {
@@ -1114,6 +1027,31 @@ public class RobotHardware {
 
         // set up the motor for run to position with the target encoder position
         armExtensionMotor.setTargetPosition(position);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+
+        // Power the motor to extend the arm
+        armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
+    }
+
+    /**
+     * Use the motor controllers RUN_TO_POSITION function to extend the arm to "full" extension.
+     * This function extends the arm to either ARM_EXTENSION_LIMIT or ARM_EXTENSION_LIMIT_FULL
+     * depending on the current rotation of the arm, in order to enforce the 42" lateral extension
+     * limit for the robot. In a teleop OpMode, the calling method should call the
+     * stopArmExtension() method to set the power on the motor back to zero when the operation is
+     * done (based on isArmExtensionBusy() method). In a linear (autonomous) OpMode, this method
+     * should wait sufficient time for the extension operation to complete and then call
+     * stopArmExtension() method. This method should keep the arm in the specified position until
+     * the stopArmExtension() is called, so it may be handy when, e.g., moving forward with the arm
+     * extended to hang a specimen or place a sample in a bucket.
+     */
+    public void extendArmToLimit() {
+
+        // make sure the position is within the allowable range
+        int targetPos = (getArmRotation() < ARM_ROTATION_VERTICAL) ? ARM_EXTENSION_LIMIT_FULL : ARM_EXTENSION_LIMIT;
+
+        // set up the motor for run to position with the target encoder position
+        armExtensionMotor.setTargetPosition(targetPos);
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
@@ -1149,8 +1087,9 @@ public class RobotHardware {
      * loop to cover the extension of the arm the specified position using RUN_TO_ENCODER in the
      * arm extension motor (with built-in PID controller).
      * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
+     * @param slow true to extend the arm slowly, false to extend at full speed
      */
-    public void setArmExtension(int position) {
+    public void setArmExtension(int position, boolean slow) {
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -1160,7 +1099,7 @@ public class RobotHardware {
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
-        armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
+        armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR * (slow ? 0.5 : 1.0));
 
         // loop until the arm extension has reached the desired position
         while (armExtensionMotor.isBusy()) {
@@ -1178,27 +1117,30 @@ public class RobotHardware {
     }
 
     /**
-     * Reset the limits for arm extension from fully extended arm.
-     * This method should be called when the arm is fully extended, i.e. over limit.
+     * Extend the arm to the specified position (encoder value).
+     * Overrides setArmExtension(position, slow) and passes false to slow
+     * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
      */
-    public void resetArmLimitsExtended() {
-
-        // reset the encoder for the arm extension motor
-        armExtensionMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-
-        // reset the limit values accordingly
-        ARM_EXTENSION_MAX = 0;
-        ARM_EXTENSION_MIN = -ARM_EXTENSION_LIMIT;
-
-        // set the mode back to RUN_USING_ENCODER
-        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+    public void setArmExtension(int position) {
+        setArmExtension(position, false);
     }
 
     /**
-     * Reset the limits for arm extension from fully retracted arm.
-     * This method should be called when the arm is fully retracted, i.e., under limit.
+     * Temporarily suspends the limits for arm extension so that the operator can re-home (fully
+     * retract) the arm before resetting the limits.
      */
-    public void resetArmLimitsRetracted() {
+    public void suspendArmLimits() {
+
+        // reset the max and min to full limit values
+        ARM_EXTENSION_MAX = ARM_EXTENSION_LIMIT_FULL;
+        ARM_EXTENSION_MIN = -ARM_EXTENSION_LIMIT_FULL;
+    }
+
+    /**
+     * Reset the limits for arm extension.
+     * This method should be called once the arm is homed (fully retracted).
+     */
+    public void resetArmLimits() {
 
         // reset the encoder for the arm extension motor
         armExtensionMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
