@@ -154,9 +154,14 @@ public class RobotHardware {
     static final double X_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
     static final double Y_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
     static final double HEADING_TOLERANCE = 0.034; // Tolerance for heading in radians (~2 degrees)
-    static final double X_CONTROLLER_DEADBAND = 3.175; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
-    static final double Y_CONTROLLER_DEADBAND = 3.175; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
-    static final double YAW_CONTROLLER_DEADBAND = 0.01; // Deadband range for Yaw power calculation. Should be less than HEADING_TOLERANCE
+    //static final double X_CONTROLLER_DEADBAND = 3.175; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
+    //static final double Y_CONTROLLER_DEADBAND = 3.175; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
+    //static final double YAW_CONTROLLER_DEADBAND = 0.01; // Deadband range for Yaw power calculation. Should be less than HEADING_TOLERANCE
+    // What happens if we use 0 deadbands? Don't the motors already have a deadband built in?
+    static final double X_CONTROLLER_DEADBAND = 0;
+    static final double Y_CONTROLLER_DEADBAND = 0;
+    static final double YAW_CONTROLLER_DEADBAND = 0;
+
 
     // PID gain values for each of the three closed-loop controllers (X, Y, and heading). These need
     // to be calibrated:
@@ -707,7 +712,7 @@ public class RobotHardware {
     }
 
     /**
-     * Turn a relative angle while maintaining current position.
+     * Turn a relative angle.
      * This method should be called from a LinerOpMode and implements its own loop to cover the
      * robot's motion to the specified position.
      * @param angle Angle to rotate in Radians: + is counter-clockwise, - is clockwise
@@ -715,9 +720,10 @@ public class RobotHardware {
      */
     public void turn(double angle, double speed) {
 
-        // Proportional controllers for x, y, and yaw
-        PController xController = new PController(0.0, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
-        PController yController = new PController(0.0, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
+        // Proportional controller heading
+        // NOTE: Maintaining proportional controllers for x and y at zero to prevent drift doesn't
+        // seem to work very well. This may have something to do with lack of calibration of
+        // DEADWHEEL_FORWARD_OFFSET parameter. For now just use a simple P controller for heading.
         PController yawController = new PController(angle, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
         // Flag to determine if called from a Liner OpMode
@@ -739,15 +745,11 @@ public class RobotHardware {
                 break;
 
             // Calculate the control output for each of the three controllers
-            //double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
-            double xPower = 0.0;
-            //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
-            double yPower = 0.0;
             double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
 
             // Move the robot based on the calculated powers
-            // NOTE: We reduced the yaw power by 70% to make the robot turn more slowly and accurately
-            move(xPower, yPower, yawPower, speed * 0.7);
+            // NOTE: We reduced the yaw power by 60% to make the robot turn more slowly and accurately
+            move(0, 0, yawPower, speed * 0.6);
         }
 
         // stop the robot
