@@ -46,6 +46,7 @@ public class TeleopOpMode extends OpMode
     //  - RobotHardware.MOTOR_SPEED_FACTOR_PRECISE: Slow (precise) speed for fine control and odometry tracking
     //  - RobotHardware.MOTOR_SPEED_FACTOR_DAVIS: "Sprint" (fast) speed
     // This may also be displayed in telemetry data on the driver station.
+    // Logan Button sets the d-pad speed to a faster setting if need be.
     double speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
     double loganButton = RobotHardware.MOTOR_SPEED_FACTOR_PRECISE;
     // A hashmap to store the speed factor names for display in telemetry data on the driver station.
@@ -114,6 +115,7 @@ public class TeleopOpMode extends OpMode
         // B: Precise speed
         // X: Davis speed
         // Y: D-Pad speed setter
+
         if(gamepad1.a && !lastGamepad1.a) {
             speedFactor = RobotHardware.MOTOR_SPEED_FACTOR_NORMAL;
         }
@@ -147,11 +149,11 @@ public class TeleopOpMode extends OpMode
         } else {
             // ignore right stick inputs if bumpers are pressed
             if (gamepad1.right_bumper || gamepad1.left_bumper){
-                //rotate the bot
+                //rotates the bot based off of set speed.
                if (gamepad1.right_bumper)
-                   robot.move(0,0, 1, loganButton * 0.5);
+                   robot.move(0,0, -1, loganButton * 0.5);
                else if(gamepad1.left_bumper)
-                   robot.move(0, 0, -1, loganButton * 0.5);
+                   robot.move(0, 0, 1, loganButton * 0.5);
             }
             else {
                 // Use left joystick to go forward & strafe, and right joystick to rotate.
