@@ -1207,7 +1207,7 @@ public class RobotHardware {
         PController yawController = new PController(heading, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
         // Maximum number of times the specified tag was not detected before breaking out of the loop
-        final int MAX_NODETECTION_COUNT = 3;
+        final int MAX_NODETECTION_COUNT = 10;
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -1242,6 +1242,9 @@ public class RobotHardware {
 
             // If the specified tag was detected, calculate robot movement
             if (target != null) {
+
+                // reset not detected count
+                notDetectedCount = 0;
 
                 // retrieve the current field position of the robot
                 Pose3D currentPos = aprilTags.get(0).robotPose;

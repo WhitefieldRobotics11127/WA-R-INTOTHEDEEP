@@ -26,7 +26,7 @@ public class AutoOdometryTest extends LinearOpMode {
 
     // Declare OpMode members.
     final ElapsedTime runtime = new ElapsedTime();
-    Gamepad lastGamepad1 = new Gamepad(); //// save last gamepad state.
+    Gamepad lastGamepad1 = new Gamepad(); // save last gamepad state.
 
     @Override
     public void runOpMode() {
@@ -87,7 +87,7 @@ public class AutoOdometryTest extends LinearOpMode {
         // direction from the start position. :)
         if (opModeIsActive()) {
             robot.forward(2000,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-            showTelemetryAndWait();
+            showTelemetry();
         }
 
         // Stop the robot - just in case
@@ -99,25 +99,25 @@ public class AutoOdometryTest extends LinearOpMode {
             // call mid-level motion function to Move the robot about a foot in the direction
             // of the d-pad button pressed or rotate 90 degrees in the direction of the bumper
             // pressed. This is for testing odometry and PID tuning.
-            if(gamepad1.dpad_up && !lastGamepad1.dpad_up)
+            if(gamepad1.dpad_up)
                 robot.forward(300, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-            else if(gamepad1.dpad_down && !lastGamepad1.dpad_down)
+            else if(gamepad1.dpad_down)
                 robot.forward(-300, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-            else if(gamepad1.dpad_left && !lastGamepad1.dpad_left)
+            else if(gamepad1.dpad_left)
                 robot.strafe(300, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-            else if(gamepad1.dpad_right && !lastGamepad1.dpad_right)
-                robot.strafe(300, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-            else if(gamepad1.left_bumper && !lastGamepad1.left_bumper)
+            else if(gamepad1.dpad_right)
+                robot.strafe(-300, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            else if(gamepad1.left_bumper)
                 robot.turn(Math.PI / 2, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-            else if(gamepad1.right_bumper && !lastGamepad1.right_bumper)
-                robot.turn(Math.PI / 2, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            else if(gamepad1.right_bumper)
+                robot.turn(-Math.PI / 2, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
             // Move the robot to the test square facing the blue alliance wall
             // NOTE: Use the Drivetrain test/calibration opmode to move the robot into this position
             // and then pull the right trigger to read the x, y, and heading position along with the
             // tag ID to supply to the moveToPositionUsingAprilTag() function.
-            else if (gamepad1.a && !lastGamepad1.a)
-                robot.moveToPositionUsingAprilTag(1250, 1400, Math.PI / 2, 1, 14, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+            else if (gamepad1.a)
+                robot.moveToPositionUsingAprilTag(-1301.6, -1083.0, 1.607, 1, 16, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
 
             // Display odometry telemetry
             showTelemetry();
@@ -130,7 +130,7 @@ public class AutoOdometryTest extends LinearOpMode {
         robot.stop();
 
         // Display the time elapsed and final field position in telemetry
-        telemetry.addData("Status", " Stopped. Run Time: %s", runtime.toString());
+        telemetry.addData("Status", "Stopped. Run Time: %s", runtime.toString());
         telemetry.update();
     }
 
