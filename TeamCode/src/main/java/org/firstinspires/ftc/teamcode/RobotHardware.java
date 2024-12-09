@@ -8,18 +8,17 @@
  * Support for Mecanum (Omni) drivetrain, odometry, IMU, and vision processing is included, which
  * can (hopefully) be reused from year to year. Support for INTO THE DEEP game-specific hardware,
  * such as the Viper-Slide arm and the servos for the claw are season-specific but can serve as
- * examples, will be added as needed.
+ * examples.
  *
  * Also included in this class are methods and classes for performing autonomous motion using
- * odometry. Multiple options (direct drive, strafe, and rotate commands; relative X, Y, and heading
- * changes; and move and rotate to absolute field coordinates) are included.
+ * odometry. Odometry calculations and forward, strafe, and turn functions are included.
  *
  * Many parameter values must be tuned for the specific robot and competition, and these are noted
  * in the comments.
  *
- * To simplify all calculations, all lengths are in MM and all angles are in radians. The FTC
- * coordinate system is used, with the +X-axis forward, the +Y-axis to the left, the +Z-axis up,
- * and +Yaw is counterclockwise.
+ * To simplify all calculations, all lengths are in MM and all angles are in radians. The NWU
+ * (North, West, and Up) coordinate frame is used for robot axes, with the +X-axis forward, the
+ *  +Y-axis to the left, the +Z-axis up, and +Yaw is counterclockwise.
  */
 
 package org.firstinspires.ftc.teamcode;
@@ -38,17 +37,14 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.robot.Robot;
 //import com.qualcomm.robotcore.hardware.IMU;
 //import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
@@ -63,7 +59,7 @@ import java.util.ArrayList;
  */
 public class RobotHardware {
 
-    /* ----- Public constants (so they can be used the calling OpMode) ----- */
+    /* ----- Public constants (so they can be used by the calling OpMode) ----- */
     // Allow drivetrain to operate in different at different, selectable "speeds"
     /** Normal speed for movement commands. */
     public static final double MOTOR_SPEED_FACTOR_NORMAL = 0.65;
@@ -73,6 +69,7 @@ public class RobotHardware {
     public static final double MOTOR_SPEED_FACTOR_PRECISE = 0.35;
     /** Separate speed for Autonomous movement commands to use. */
     public static final double MOTOR_SPEED_FACTOR_AUTONOMOUS = 0.5;
+
     // Allowable limits for arm rotation
     // NOTE: These are [0, 1) within voltage rage of potentiometer
     /** 
@@ -88,7 +85,7 @@ public class RobotHardware {
      */
     public static final double ARM_ROTATION_MAX = 0.39;
 
-    // Encoder limits for extension of arm.
+    // Limits for extension of arm.
     /**
      * Encoder position for fully extended viper slide (arm) when horizontal.
      * This value is set lower than the physical extension limit to fit into the 42" lateral reach
@@ -144,10 +141,10 @@ public class RobotHardware {
     static final int DEADWHEEL_LEFT_DIRECTION = 1; // Allows for adjustment of + direction of left encoder - should be installed front to back
     static final int DEADWHEEL_RIGHT_DIRECTION = -1; // Allows for adjustment of + direction of right encoder - should be installed front to back
     static final int DEADWHEEL_AUX_DIRECTION = -1; // Allows for adjustment of + direction of aux encoder - should be installed left to right
-    // The following values were calibrated for the unladen (no arm/claw assembly) robot on 10/29/2024
+    // The following values were last calibrated 2024-12-23
     static final double DEADWHEEL_MM_PER_TICK = 0.07486; // MM per encoder tick (initially calculated 48MM diameter wheel @ 2000 ticks per revolution)
     static final double DEADWHEEL_FORWARD_OFFSET = -106.0; //forward offset (length B) of aux deadwheel from robot center of rotation in MM (negative if behind)
-    static final double DEADWHEEL_TRACKWIDTH = 308.4; // distance (length L) between left and right deadwheels in MM
+    static final double DEADWHEEL_TRACKWIDTH = 306.7; // distance (length L) between left and right deadwheels in MM
 
     /*
      * Constants for autonomous motion routines.
@@ -156,10 +153,10 @@ public class RobotHardware {
     // Tolerance values for closed-loop controllers for use in translate and rotate commands
     static final double X_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
     static final double Y_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
-    static final double HEADING_TOLERANCE = 0.0628; // Tolerance for heading in radians (~3.6 degrees)
-    static final double X_CONTROLLER_DEADBAND = 5.0; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
-    static final double Y_CONTROLLER_DEADBAND = 5.0; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
-    static final double YAW_CONTROLLER_DEADBAND = 0.03; // Deadband range for Yaw power calculation. Should be less than HEADING_TOLERANCE
+    static final double HEADING_TOLERANCE = 0.034; // Tolerance for heading in radians (~2 degrees)
+    static final double X_CONTROLLER_DEADBAND = 3.175; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
+    static final double Y_CONTROLLER_DEADBAND = 3.175; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
+    static final double YAW_CONTROLLER_DEADBAND = 0.01; // Deadband range for Yaw power calculation. Should be less than HEADING_TOLERANCE
 
     // PID gain values for each of the three closed-loop controllers (X, Y, and heading). These need
     // to be calibrated:
@@ -215,13 +212,13 @@ public class RobotHardware {
      */
     // Position and orientation of camera(s) on robot for AprilTag detection and field position
     // calculation. These values relate the position of the center of the camera lens relative to
-    // the center of rotation of the robot at field height on three FTC-defined robot axes:
-    // +y forward, +x right, and +z upward, with orientation being: yaw about the z-axis, pitch
-    // about the x-axis, and roll about the y-axis.
-    // NOTE: This definition of the robot's axes are different than the UNW robot axes (+x forward,
+    // the center of rotation of the robot at field height on three FTC-defined robot axes: +y
+    // forward, +x right, and +z upward, with orientation being: yaw about the z-axis, pitch about
+    // the x-axis, and roll about the y-axis.
+    // NOTE: This definition of the robot's axes are different than the NWU robot axes (+x forward,
     // +y left) we use for motion that we got from gm0 and WPILib, so in order to make the heading
     // value of the returned field pose correct for our robot, we need to skew the yaw by -90
-    // degrees in the orientation. Thus for a camera point left, the yaw is 0, pointing forward is
+    // degrees in the orientation. Thus for a camera pointed left, the yaw is 0, pointing forward is
     // -90, pointing right is 180 degrees, and pointing backward is 90 degrees. Also, a pitch of 0
     // would have the camera pointing straight up, so we need to set the pitch to -90 degrees
     // (rotation about the x-axis), meaning the camera is horizontal.
@@ -626,8 +623,8 @@ public class RobotHardware {
 
         // Proportional controllers for x, y, and yaw
         PController xController = new PController(distance, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
-        //PController yController = new PController(0.0, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
-        //PController yawController = new PController(0.0, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
+        PController yController = new PController(0.0, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
+        PController yawController = new PController(0.0, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -649,10 +646,10 @@ public class RobotHardware {
 
             // Calculate the control output for each of the three controllers
             double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
-            //double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
-            double yPower = 0.0;
-            //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
-            double yawPower = 0.0;
+            double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
+            //double yPower = 0.0;
+            double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
+            //double yawPower = 0.0;
 
             // Move the robot based on the calculated powers
             move(xPower, yPower, yawPower, speed);
@@ -672,9 +669,9 @@ public class RobotHardware {
     public void strafe(double distance, double speed) {
 
         // Proportional controllers for x, y, and yaw
-        //PController xController = new PController(0.0, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
+        PController xController = new PController(0.0, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
         PController yController = new PController(distance, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
-        //PController yawController = new PController(0.0, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
+        PController yawController = new PController(0.0, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -695,11 +692,11 @@ public class RobotHardware {
                 break;
 
             // Calculate the control output for each of the three controllers
-            //xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
-            double xPower = 0.0;
+            double xPower = clip(xController.calculate(xOdometryCounter), -1.0, 1.0);
+            //double xPower = 0.0;
             double yPower = clip(yController.calculate(yOdometryCounter), -1.0, 1.0);
-            //double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
-            double yawPower = 0.0;
+            double yawPower = clip(yawController.calculate(headingOdometryCounter), -1.0, 1.0);
+            //double yawPower = 0.0;
 
             // Move the robot based on the calculated powers
             move(xPower, yPower, yawPower, speed);
@@ -719,8 +716,8 @@ public class RobotHardware {
     public void turn(double angle, double speed) {
 
         // Proportional controllers for x, y, and yaw
-        //PController xController = new PController(0.0, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
-        //PController yController = new PController(0.0, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
+        PController xController = new PController(0.0, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
+        PController yController = new PController(0.0, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
         PController yawController = new PController(angle, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
         // Flag to determine if called from a Liner OpMode
@@ -755,115 +752,6 @@ public class RobotHardware {
 
         // stop the robot
         stop();
-    }
-
-    /* ----- High-level movement methods for autonomous motion ----- */
-
-    /**
-     * Move robot to specified field coordinate position (X, Y) and heading in MM and radians based
-     * on the specified AprilTag detected by specified camera.
-     * This method should only be called from a LinerOpMode and implements its own
-     * loop to cover the robots motion to the specified position.
-     * @param x x-coordinate of center of robot in field coordinates (MM)
-     * @param y y-coordinate of center of robot in field coordinates (MM)
-     * @param heading current angle of robot relative to positive x-axis in field coordinates (rad)
-     * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
-     * @param speed Speed factor to apply (should use defined constants)
-     */
-    public void moveToPositionUsingAprilTag(double x, double y, double heading, int camera, int tagID, double speed) {
-
-        // Proportional controllers for x, y, and yaw
-        // Do we want more precise tolerances and/or deadbands here?
-        PController xController = new PController(x, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
-        PController yController = new PController(y, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
-        PController yawController = new PController(heading, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
-
-        // Maximum number of times the specified tag was not detected before breaking out of the loop
-        final int MAX_NODETECTION_COUNT = 3;
-
-        // Flag to determine if called from a Liner OpMode
-        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
-
-        // If vision was not initialized or camera(s) are not enabled, then return
-        if (visionPortal == null || visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)
-            return;
-
-        // Switch to the specified camera
-        switchCamera(camera);
-
-        // Counter for the number of times the specified tag was not detected
-        int notDetectedCount = 0;
-
-        // Loop until the robot has reached the desired position
-        // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle()
-        // in the loop
-        while (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) {
-
-            // get the latest AprilTag detections
-            ArrayList<AprilTagDetection> aprilTags = getAprilTags();
-
-            // Find specified tag in the current detections (or set the first one found if no tag
-            // ID specified)
-            AprilTagDetection target = null;
-            for (AprilTagDetection tag : aprilTags) {
-                if (tag.id == tagID || tagID == 0) {
-                    target = tag;
-                    break;  // don't look any further
-                }
-            }
-
-            // If the specified tag was detected, calculate robot movement
-            if (target != null) {
-
-                // retrieve the current field position of the robot
-                Pose3D currentPos = aprilTags.get(0).robotPose;
-
-                // calculate error in the x, y, and heading from the current robot pose and the
-                // specified target position
-                // NOTE: The deltas (errors) for x and y in the robot's axes are calculated from the
-                // delta x and delta y in the field coordinate system by applying a rotation transform
-                // using the robot's current heading (in field coordinates):
-                double deltaX = x - currentPos.getPosition().x;
-                double deltaY = y - currentPos.getPosition().y;
-                double theta = currentPos.getOrientation().getYaw(AngleUnit.RADIANS);
-                double errorX = deltaX * Math.cos(theta) + deltaY * Math.sin(theta);
-                double errorY = -deltaX * Math.sin(theta) + deltaY * Math.cos(theta);
-                double errorH = heading - theta;
-
-                // If we have reached the desired position, break out of the loop
-                if (xController.isWithinTolerance(errorX) &&
-                        yController.isWithinTolerance(errorY) &&
-                        yawController.isWithinTolerance(errorH))
-                    break;
-
-                // Calculate the control output for each of the three controllers
-                double xPower = clip(xController.calculate(errorX), -1.0, 1.0);
-                double yPower = clip(yController.calculate(errorY), -1.0, 1.0);
-                double yawPower = clip(yawController.calculate(errorH), -1.0, 1.0);
-
-                // Move the robot based on the calculated powers
-                move(xPower, yPower, yawPower, speed);
-            }
-            else {
-                // If the specified tag was not detected, increment the counter
-                notDetectedCount++;
-
-                // If not detected counts exceeds maximum number of times, break out
-                // of the loop
-                if (notDetectedCount > MAX_NODETECTION_COUNT)
-                    break;
-            }
-
-            // Wait some time for robot to move and new AprilTag detections to be acquired
-            if(isLinearOpMode)
-                ((LinearOpMode) myOpMode).sleep(150);
-        }
-
-        // stop the robot
-        stop();
-
-        // Turn off AprilTag detection
-        switchCamera(0);
     }
 
     /* ----- Arm and claw control methods ----- */
@@ -1296,6 +1184,113 @@ public class RobotHardware {
     public void disableVision() {
         visionPortal.stopStreaming();
     }
+
+    /**
+     * Move robot to specified field coordinate position (X, Y) and heading in MM and radians based
+     * on the specified AprilTag detected by specified camera.
+     * This method should only be called from a LinerOpMode and implements its own
+     * loop to cover the robots motion to the specified position.
+     * @param x x-coordinate of center of robot in field coordinates (MM)
+     * @param y y-coordinate of center of robot in field coordinates (MM)
+     * @param heading current angle of robot relative to positive x-axis in field coordinates (rad)
+     * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
+     * @param speed Speed factor to apply (should use defined constants)
+     */
+    public void moveToPositionUsingAprilTag(double x, double y, double heading, int camera, int tagID, double speed) {
+
+        // Proportional controllers for x, y, and yaw
+        // Do we want more precise tolerances and/or deadbands here?
+        PController xController = new PController(x, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
+        PController yController = new PController(y, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
+        PController yawController = new PController(heading, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
+
+        // Maximum number of times the specified tag was not detected before breaking out of the loop
+        final int MAX_NODETECTION_COUNT = 3;
+
+        // Flag to determine if called from a Liner OpMode
+        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
+        // If vision was not initialized or camera(s) are not enabled, then return
+        if (visionPortal == null || visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)
+            return;
+
+        // Switch to the specified camera
+        switchCamera(camera);
+
+        // Counter for the number of times the specified tag was not detected
+        int notDetectedCount = 0;
+
+        // Loop until the robot has reached the desired position
+        // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle()
+        // in the loop
+        while (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) {
+
+            // get the latest AprilTag detections
+            ArrayList<AprilTagDetection> aprilTags = getAprilTags();
+
+            // Find specified tag in the current detections (or set the first one found if no tag
+            // ID specified)
+            AprilTagDetection target = null;
+            for (AprilTagDetection tag : aprilTags) {
+                if (tag.id == tagID || tagID == 0) {
+                    target = tag;
+                    break;  // don't look any further
+                }
+            }
+
+            // If the specified tag was detected, calculate robot movement
+            if (target != null) {
+
+                // retrieve the current field position of the robot
+                Pose3D currentPos = aprilTags.get(0).robotPose;
+
+                // calculate error in the x, y, and heading from the current robot pose and the
+                // specified target position
+                // NOTE: The deltas (errors) for x and y in the robot's axes are calculated from the
+                // delta x and delta y in the field coordinate system by applying a rotation transform
+                // using the robot's current heading (in field coordinates):
+                double deltaX = x - currentPos.getPosition().x;
+                double deltaY = y - currentPos.getPosition().y;
+                double theta = currentPos.getOrientation().getYaw(AngleUnit.RADIANS);
+                double errorX = deltaX * Math.cos(theta) + deltaY * Math.sin(theta);
+                double errorY = -deltaX * Math.sin(theta) + deltaY * Math.cos(theta);
+                double errorH = heading - theta;
+
+                // If we have reached the desired position, break out of the loop
+                if (xController.isWithinTolerance(errorX) &&
+                        yController.isWithinTolerance(errorY) &&
+                        yawController.isWithinTolerance(errorH))
+                    break;
+
+                // Calculate the control output for each of the three controllers
+                double xPower = clip(xController.calculate(errorX), -1.0, 1.0);
+                double yPower = clip(yController.calculate(errorY), -1.0, 1.0);
+                double yawPower = clip(yawController.calculate(errorH), -1.0, 1.0);
+
+                // Move the robot based on the calculated powers
+                move(xPower, yPower, yawPower, speed);
+            }
+            else {
+                // If the specified tag was not detected, increment the counter
+                notDetectedCount++;
+
+                // If not detected counts exceeds maximum number of times, break out
+                // of the loop
+                if (notDetectedCount > MAX_NODETECTION_COUNT)
+                    break;
+            }
+
+            // Wait some time for robot to move and new AprilTag detections to be acquired
+            if(isLinearOpMode)
+                ((LinearOpMode) myOpMode).sleep(150);
+        }
+
+        // stop the robot
+        stop();
+
+        // Turn off AprilTag detection
+        switchCamera(0);
+    }
 }
 
 /**
@@ -1379,25 +1374,27 @@ class PIDController {
         // Calculate the error
         double error = target - currentPosition;
 
-        // Get elapsed time (secs) since last calculation
-        int currentTime = (int) System.currentTimeMillis() / 1000;
-        int deltaTime = currentTime - lastTime;
-        lastTime = currentTime;
-
-        // Update the integral sum
-        integralSum += error * deltaTime;
-
-        // Calculate the derivative term
-        double derivative = (error - lastError) / deltaTime; // rate of change of the error
-
-        // update the last error value
-        lastError = error;
-
         // Check if the error is within the deadband range
         if (Math.abs(error) < deadband)
             return 0.0;
-        else
+        else {
+
+            // Get elapsed time (secs) since last calculation
+            int currentTime = (int) System.currentTimeMillis() / 1000;
+            int deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            // Update the integral sum
+            integralSum += error * deltaTime;
+
+            // Calculate the derivative term
+            double derivative = (error - lastError) / deltaTime; // rate of change of the error
+
+            // update the last error value
+            lastError = error;
+
             // Calculate the control output
             return (Kp * error) + (Ki * integralSum) + (Kd * derivative);
+        }
     }
 }
