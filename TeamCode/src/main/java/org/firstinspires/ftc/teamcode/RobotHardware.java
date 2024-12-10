@@ -1207,7 +1207,7 @@ public class RobotHardware {
         PController yawController = new PController(heading, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
         // Maximum number of times the specified tag was not detected before breaking out of the loop
-        final int MAX_NODETECTION_COUNT = 10;
+        final int MAX_NODETECTION_COUNT = 5;
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -1290,7 +1290,7 @@ public class RobotHardware {
                 ((LinearOpMode) myOpMode).sleep(150);
         }
 
-        // stop the robot
+        // stop any robot movement
         stop();
 
         // Turn off AprilTag detection

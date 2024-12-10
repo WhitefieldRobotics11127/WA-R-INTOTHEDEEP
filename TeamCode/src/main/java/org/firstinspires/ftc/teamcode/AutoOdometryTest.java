@@ -31,9 +31,9 @@ public class AutoOdometryTest extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        // initialize all the hardware
+        // initialize all the hardware, including vision portal
         // NOTE: This resets the odometry counters to zero
-        robot.init();
+        robot.init(true);
 
         // Update the status in telemetry
         telemetry.addData("Status", "Initialized");
