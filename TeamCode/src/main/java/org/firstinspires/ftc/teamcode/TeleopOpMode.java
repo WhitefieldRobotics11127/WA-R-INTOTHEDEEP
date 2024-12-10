@@ -52,7 +52,7 @@ public class TeleopOpMode extends OpMode
     // A hashmap to store the speed factor names for display in telemetry data on the driver station.
     static final private HashMap<Double, String> speedFactorNames;
     static {
-        speedFactorNames = new HashMap<Double, String>();
+        speedFactorNames = new HashMap<>();
         speedFactorNames.put(RobotHardware.MOTOR_SPEED_FACTOR_NORMAL, "Normal");
         speedFactorNames.put(RobotHardware.MOTOR_SPEED_FACTOR_PRECISE, "Precise");
         speedFactorNames.put(RobotHardware.MOTOR_SPEED_FACTOR_DAVIS, "Davis");
@@ -169,7 +169,6 @@ public class TeleopOpMode extends OpMode
         // ***** Handle arm and claw control from Gamepad2 *****
 
         // Right trigger controls the claw servo
-        double servoPosition;
         if (gamepad2.right_trigger > 0.4)
             robot.closeClaw((gamepad2.left_trigger > 0.4));
         else
