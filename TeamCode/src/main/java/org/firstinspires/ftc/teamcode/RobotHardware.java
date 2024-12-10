@@ -37,8 +37,6 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
-//import com.qualcomm.robotcore.hardware.IMU;
-//import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
@@ -98,11 +96,11 @@ public class RobotHardware {
      * Encoder position for fully extended viper slide (arm) when vertical.
      * This value is the maximum physical extension limit and is not subject the 42" limit of the
      * FTC rules when the arm is vertical. This can be used, e.g., when reaching for the the top
-     * bucket on the INTOTHEDEEP field. Use the extendArmToLimit() method to extend the arm to the
+     * bucket on the INTO THE DEEP field. Use the extendArmToLimit() method to extend the arm to the
      * maximum allowable limit based on the arm rotation position.
      * NOTE: This assumes that the fully retracted is currently set as 0 encoder value.
      */
-    public static final int ARM_EXTENSION_LIMIT_FULL = 2940;
+    public static final int ARM_EXTENSION_LIMIT_FULL = 2939;
 
     // Servo positions for claw
     // NOTE: these are [0, 1) within the min and max range set for the servo
@@ -151,13 +149,13 @@ public class RobotHardware {
      * These may require a lot of tweaking.
      */
     // Tolerance values for closed-loop controllers for use in translate and rotate commands
-    static final double X_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
-    static final double Y_POSITION_TOLERANCE = 12.5; // Tolerance for position in MM (~ 1/2 inch)
+    static final double X_POSITION_TOLERANCE = 10; // Tolerance for position in MM (~ 1/2 inch)
+    static final double Y_POSITION_TOLERANCE = 10; // Tolerance for position in MM (~ 1/2 inch)
     static final double HEADING_TOLERANCE = 0.034; // Tolerance for heading in radians (~2 degrees)
     //static final double X_CONTROLLER_DEADBAND = 3.175; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
     //static final double Y_CONTROLLER_DEADBAND = 3.175; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
     //static final double YAW_CONTROLLER_DEADBAND = 0.01; // Deadband range for Yaw power calculation. Should be less than HEADING_TOLERANCE
-    // What happens if we use 0 deadbands? Don't the motors already have a deadband built in?
+    // What happens if we use 0 deadband values? Don't the motors already have a deadband built in?
     static final double X_CONTROLLER_DEADBAND = 0;
     static final double Y_CONTROLLER_DEADBAND = 0;
     static final double YAW_CONTROLLER_DEADBAND = 0;
@@ -170,7 +168,7 @@ public class RobotHardware {
     // regularly oscillates around the target position.
     // - Once Kp is set, increase the Kd value from zero until the end behavior stabilizes.
     // - We will likely not use Ki values.
-    static final double X_CONTROLLER_KP = 0.0050; // Proportional gain for axial (forward) position error - start slowing down at 200 mm (~ 8 in.)
+    static final double X_CONTROLLER_KP = 0.0040; // Proportional gain for axial (forward) position error - start slowing down at 250 mm (~ 10 in.)
     static final double X_CONTROLLER_KD = 0.0; // Derivative gain for axial (forward) position error
     static final double X_CONTROLLER_KI = 0.0; // Integral gain for axial (forward) position error
     static final double Y_CONTROLLER_KP = 0.0067; // Proportional gain for lateral (strafe) position error - start slowing down at 150 mm (~ 6 in.)
@@ -202,7 +200,7 @@ public class RobotHardware {
     double ARM_ROTATION_MAX_VOLTAGE;
 
     // Limit the power to the extension motor to prevent damage to the arm. This needs to be calibrated.
-    static final double ARM_EXTENSION_POWER_LIMIT_FACTOR = 0.7; // Factor to limit power to arm extension motor
+    static final double ARM_EXTENSION_POWER_LIMIT_FACTOR = 0.85; // Factor to limit power to arm extension motor
 
     // Tolerances and proportional gain values for arm extension position controller. These need to be calibrated.
     static final int ARM_EXTENSION_DEADBAND = 25; // Deadband range for arm extension position in ticks (1/4 turn)
@@ -541,7 +539,13 @@ public class RobotHardware {
         int dl = lastLeftEncoderPosition  - oldLeftCounter;
         int dr= lastRightEncoderPosition - oldRightCounter;
         int da = lastAuxEncoderPosition - oldAuxOdometryCounter;
-        double dtheta = DEADWHEEL_MM_PER_TICK * (dr - dl) / DEADWHEEL_TRACKWIDTH;
+
+        // Change in X is the just the average of the forward movement of the left and right deadwheels
+        double dx = DEADWHEEL_MM_PER_TICK * (dl+dr) / 2.0;
+
+        // Linear approximation of the change in heading (dtheta)
+        //double dtheta = DEADWHEEL_MM_PER_TICK * (dr - dl) / DEADWHEEL_TRACKWIDTH;
+
         // The linear approximation above becomes less accurate as (dr - dl) grows large. The
         // equations below provide a more accurate approximation that uses the law of cosines to
         // calculate the change in heading (dtheta):
@@ -550,9 +554,11 @@ public class RobotHardware {
         // Math library which may be computational intensive. As long as updateOdometry() is called
         // frequently enough, i.e., the change in odometry wheel ticks remains relatively small,
         // the linear approximation should be sufficient.
-        //double c = DEADWHEEL_MM_PER_TICK * (dr - dl) / 2.0;
-        //double dtheta = (c / Math.abs(c)) * Math.acos(1 - (2 * Math.pow(c, 2)) / Math.pow(DEADWHEEL_TRACKWIDTH, 2));
-        double dx = DEADWHEEL_MM_PER_TICK * (dl+dr) / 2.0;
+        double c = DEADWHEEL_MM_PER_TICK * (dr - dl) / 2.0;
+        double dtheta = (c / Math.abs(c)) * Math.acos(1 - (2 * Math.pow(c, 2)) / Math.pow(DEADWHEEL_TRACKWIDTH, 2));
+
+        // The change in Y is the forward movement of the aux deadwheel minus and ticks in the
+        // deadwheel from change in heading
         double dy = DEADWHEEL_MM_PER_TICK * da - DEADWHEEL_FORWARD_OFFSET * dtheta;
 
         // update the x, y, and heading odometry counters
@@ -722,8 +728,9 @@ public class RobotHardware {
 
         // Proportional controller heading
         // NOTE: Maintaining proportional controllers for x and y at zero to prevent drift doesn't
-        // seem to work very well. This may have something to do with lack of calibration of
-        // DEADWHEEL_FORWARD_OFFSET parameter. For now just use a simple P controller for heading.
+        // seem to work very well due to the linear nature of the odometry calculations and/or the
+        // lack of calibration of DEADWHEEL_FORWARD_OFFSET parameter. For now, we just use a simple
+        // P-controller for heading.
         PController yawController = new PController(angle, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
 
         // Flag to determine if called from a Liner OpMode
@@ -830,7 +837,7 @@ public class RobotHardware {
     public void setArmRotation(double position) {
 
         // Power for arm rotation motor
-        double power = 0.0;
+        double power;
 
         // track current arm position
         double currentPosition;
@@ -992,11 +999,10 @@ public class RobotHardware {
         armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR * (slow ? 0.5 : 1.0));
 
         // loop until the arm extension has reached the desired position
-        while (armExtensionMotor.isBusy()) {
+        while ((!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) && armExtensionMotor.isBusy()){
 
-            // Wait for the motor to reach the target position
-            if (isLinearOpMode)
-                ((LinearOpMode) myOpMode).idle();
+            // No need to call idle() here since it is called internally in opModeIsActive() in the
+            // loop condition.
         }
 
         // stop the motor
@@ -1104,7 +1110,7 @@ public class RobotHardware {
         // Decimation = 3 ..  Detect 2" Tag from 4  feet away at 30 Frames Per Second (default)
         // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second (default)
         // Note: Decimation can be changed on-the-fly to adapt during a match.
-        //aprilTagCam1.setDecimation(3);
+        aprilTagCam1.setDecimation(3);
         //aprilTagCam2.setDecimation(3);
 
         // setup webcam references for each camera
@@ -1200,14 +1206,8 @@ public class RobotHardware {
      */
     public void moveToPositionUsingAprilTag(double x, double y, double heading, int camera, int tagID, double speed) {
 
-        // Proportional controllers for x, y, and yaw
-        // Do we want more precise tolerances and/or deadbands here?
-        PController xController = new PController(x, X_POSITION_TOLERANCE, X_CONTROLLER_DEADBAND, X_CONTROLLER_KP);
-        PController yController = new PController(y, Y_POSITION_TOLERANCE, Y_CONTROLLER_DEADBAND, Y_CONTROLLER_KP);
-        PController yawController = new PController(heading, HEADING_TOLERANCE, YAW_CONTROLLER_DEADBAND, YAW_CONTROLLER_KP);
-
         // Maximum number of times the specified tag was not detected before breaking out of the loop
-        final int MAX_NODETECTION_COUNT = 5;
+        final int MAX_NO_DETECTION_COUNT = 5;
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -1225,6 +1225,7 @@ public class RobotHardware {
         // Loop until the robot has reached the desired position
         // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle()
         // in the loop
+        // NOTE: Does this need to be done in two loops: one for traversal and one for rotation?
         while (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) {
 
             // get the latest AprilTag detections
@@ -1261,16 +1262,38 @@ public class RobotHardware {
                 double errorY = -deltaX * Math.sin(theta) + deltaY * Math.cos(theta);
                 double errorH = heading - theta;
 
+                // show the current robot position, target position, and calculated errors in telemetry
+                // NOTE: This is just for debugging purposes and can be removed in production code
+                myOpMode.telemetry.addData(
+                        "Robot Position ",
+                        "X: %6.1f, Y: %6.1f, H: %1.3f",
+                        currentPos.getPosition().x,
+                        currentPos.getPosition().y,
+                        currentPos.getOrientation().getYaw(AngleUnit.RADIANS));
+                myOpMode.telemetry.addData(
+                        "Target Position",
+                        "X: %6.1f, Y: %6.1f, H: %1.3f",
+                        x,
+                        y,
+                        heading);
+                myOpMode.telemetry.addData(
+                        "Computed Error",
+                        "X: %6.1f, Y: %6.1f, H: %1.3f",
+                        errorX,
+                        errorY,
+                        errorH);
+                myOpMode.telemetry.update();
+
                 // If we have reached the desired position, break out of the loop
-                if (xController.isWithinTolerance(errorX) &&
-                        yController.isWithinTolerance(errorY) &&
-                        yawController.isWithinTolerance(errorH))
+                if (Math.abs(errorX) < X_POSITION_TOLERANCE &&
+                        Math.abs(errorY) < Y_POSITION_TOLERANCE &&
+                        Math.abs(errorH) < HEADING_TOLERANCE)
                     break;
 
                 // Calculate the control output for each of the three controllers
-                double xPower = clip(xController.calculate(errorX), -1.0, 1.0);
-                double yPower = clip(yController.calculate(errorY), -1.0, 1.0);
-                double yawPower = clip(yawController.calculate(errorH), -1.0, 1.0);
+                double xPower = clip(errorX * X_CONTROLLER_KP, -1.0, 1.0);
+                double yPower = clip(errorY * Y_CONTROLLER_KP, -1.0, 1.0);
+                double yawPower = clip(errorH * YAW_CONTROLLER_KP, -1.0, 1.0);
 
                 // Move the robot based on the calculated powers
                 move(xPower, yPower, yawPower, speed);
@@ -1281,13 +1304,13 @@ public class RobotHardware {
 
                 // If not detected counts exceeds maximum number of times, break out
                 // of the loop
-                if (notDetectedCount > MAX_NODETECTION_COUNT)
+                if (notDetectedCount > MAX_NO_DETECTION_COUNT)
                     break;
             }
 
             // Wait some time for robot to move and new AprilTag detections to be acquired
             if(isLinearOpMode)
-                ((LinearOpMode) myOpMode).sleep(150);
+                ((LinearOpMode) myOpMode).sleep(100);
         }
 
         // stop any robot movement
@@ -1343,6 +1366,7 @@ class PController {
 /**
  * PID Controller class for computing motor power during autonomous motion.
  */
+@SuppressWarnings("unused")
 class PIDController {
 
     // properties to store values needed for repeated calculations
@@ -1359,6 +1383,7 @@ class PIDController {
     private int lastTime = 0;
 
     // Constructor to set the PID controller parameters with all (PID) gain values
+    @SuppressWarnings("unused")
     public PIDController(double target,  double tolerance, double deadband, double Kp, double Ki, double Kd) {
         this.target = target;
         this.deadband = deadband;
@@ -1369,11 +1394,13 @@ class PIDController {
     }
 
     // Method to determine if error is within tolerance range
+    @SuppressWarnings("unused")
     public boolean isWithinTolerance(double currentPosition) {
         return Math.abs(target - currentPosition) < tolerance;
     }
     
     // Method to calculate the control output based on the current position
+    @SuppressWarnings("unused")
     public double calculate(double currentPosition) {
 
         // Calculate the error
