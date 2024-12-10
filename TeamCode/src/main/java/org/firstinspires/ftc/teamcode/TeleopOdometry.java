@@ -220,6 +220,9 @@ public class TeleopOdometry extends OpMode
                     // Set the arm extension to the specified position
                     robot.extendArmToPosition(pos);
                 }
+
+                // set flag indicating in arm extension operation
+                inArmExtensionOperation = true;
             }
 
             // otherwise, get the arm movement from the left stick

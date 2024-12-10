@@ -52,6 +52,8 @@ public class AutoOdometryTest extends LinearOpMode {
 
         // Move forward 2500 mm and display odometry telemetry
         if (opModeIsActive()) {
+            telemetry.addData("Running forward(2000) call...", false);
+            telemetry.update();
             robot.forward(2000, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
             showTelemetryAndWait();
         }

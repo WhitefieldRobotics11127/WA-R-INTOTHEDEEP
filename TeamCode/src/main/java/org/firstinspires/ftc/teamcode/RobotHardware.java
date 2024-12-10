@@ -100,16 +100,16 @@ public class RobotHardware {
      * maximum allowable limit based on the arm rotation position.
      * NOTE: This assumes that the fully retracted is currently set as 0 encoder value.
      */
-    public static final int ARM_EXTENSION_LIMIT_FULL = 2939;
+    public static final int ARM_EXTENSION_LIMIT_FULL = 2917;
 
     // Servo positions for claw
     // NOTE: these are [0, 1) within the min and max range set for the servo
     /** Servo position for open claw. */
-    public static final double CLAW_SERVO_OPEN = 0.6;
+    public static final double CLAW_SERVO_OPEN = 0.5;
     /** Servo position for closed claw. */
     public static final double CLAW_SERVO_CLOSE = 0.1;
     /** Servo position for widest opening of claw. */
-    public static final double CLAW_SERVO_OPEN_WIDE = 0.75;
+    public static final double CLAW_SERVO_OPEN_WIDE = 0.7;
     /** Servo position for tightly gripping claw. */
     public static final double CLAW_SERVO_CLOSE_GRIP = 0.0;
 
@@ -168,7 +168,7 @@ public class RobotHardware {
     // regularly oscillates around the target position.
     // - Once Kp is set, increase the Kd value from zero until the end behavior stabilizes.
     // - We will likely not use Ki values.
-    static final double X_CONTROLLER_KP = 0.0040; // Proportional gain for axial (forward) position error - start slowing down at 250 mm (~ 10 in.)
+    static final double X_CONTROLLER_KP = 0.0050; // Proportional gain for axial (forward) position error - start slowing down at 250 mm (~ 10 in.)
     static final double X_CONTROLLER_KD = 0.0; // Derivative gain for axial (forward) position error
     static final double X_CONTROLLER_KI = 0.0; // Integral gain for axial (forward) position error
     static final double Y_CONTROLLER_KP = 0.0067; // Proportional gain for lateral (strafe) position error - start slowing down at 150 mm (~ 6 in.)
@@ -183,7 +183,7 @@ public class RobotHardware {
      */
     // Arm rotation position where the arm is considered "vertical" for selectively applying the
     // two limit values ARM_EXTENSION_LIMIT and ARM_EXTENSION_LIMIT_FULL to the arm extension motor.
-    static final double ARM_ROTATION_VERTICAL = 0.2;
+    static final double ARM_ROTATION_VERTICAL = 0.22;
 
     // Limit the power to the rotation motor to prevent damage to the arm. This needs to be calibrated.
     static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.6; // Factor to limit power to arm rotation motor
@@ -208,7 +208,7 @@ public class RobotHardware {
 
     // Servo position limits for claw
     static final double CLAW_SERVO_RANGE_MIN = 0.0;
-    static final double CLAW_SERVO_RANGE_MAX = 0.6;
+    static final double CLAW_SERVO_RANGE_MAX = 0.5;
 
     /*
      * Constants for vision (AprilTag) processing.
@@ -544,7 +544,7 @@ public class RobotHardware {
         double dx = DEADWHEEL_MM_PER_TICK * (dl+dr) / 2.0;
 
         // Linear approximation of the change in heading (dtheta)
-        //double dtheta = DEADWHEEL_MM_PER_TICK * (dr - dl) / DEADWHEEL_TRACKWIDTH;
+        double dtheta = DEADWHEEL_MM_PER_TICK * (dr - dl) / DEADWHEEL_TRACKWIDTH;
 
         // The linear approximation above becomes less accurate as (dr - dl) grows large. The
         // equations below provide a more accurate approximation that uses the law of cosines to
@@ -554,8 +554,8 @@ public class RobotHardware {
         // Math library which may be computational intensive. As long as updateOdometry() is called
         // frequently enough, i.e., the change in odometry wheel ticks remains relatively small,
         // the linear approximation should be sufficient.
-        double c = DEADWHEEL_MM_PER_TICK * (dr - dl) / 2.0;
-        double dtheta = (c / Math.abs(c)) * Math.acos(1 - (2 * Math.pow(c, 2)) / Math.pow(DEADWHEEL_TRACKWIDTH, 2));
+        //double c = DEADWHEEL_MM_PER_TICK * (dr - dl) / 2.0;
+        //double dtheta = (c / Math.abs(c)) * Math.acos(1 - (2 * Math.pow(c, 2)) / Math.pow(DEADWHEEL_TRACKWIDTH, 2));
 
         // The change in Y is the forward movement of the aux deadwheel minus and ticks in the
         // deadwheel from change in heading
@@ -894,7 +894,7 @@ public class RobotHardware {
         if (power < 0.0)
             error = currentPosition - ((armExtensionLimitsSuspended) ? -ARM_EXTENSION_LIMIT_FULL : 0);
         else
-            error = ((armExtensionLimitsSuspended) ? ARM_EXTENSION_LIMIT_FULL : ARM_EXTENSION_LIMIT) - currentPosition;
+            error = ((getArmRotation() < ARM_ROTATION_VERTICAL) ? ARM_EXTENSION_LIMIT_FULL : ARM_EXTENSION_LIMIT) - currentPosition;
 
         if (Math.abs(error) > ARM_EXTENSION_DEADBAND)
             armExtensionMotor.setPower(power * clip(ARM_EXTENSION_KP * error, -1.0,1.0) * ARM_EXTENSION_POWER_LIMIT_FACTOR);
