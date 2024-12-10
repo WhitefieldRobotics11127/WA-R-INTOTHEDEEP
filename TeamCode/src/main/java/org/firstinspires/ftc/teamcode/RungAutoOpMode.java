@@ -28,19 +28,19 @@ public class RungAutoOpMode extends LinearOpMode {
     public void rungStrat() {
         //rotating the arm straight up
         if(opModeIsActive())
-            robot.setArmRotation(0.17);
+            robot.setArmRotation(0.19);
         //move towards the rung and extend arm at the same time
         if(opModeIsActive())
-            robot.setArmExtension(1270);
+            robot.setArmExtension(1500);
 
         if(opModeIsActive())
-            robot.forward(250, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(300, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         //rotate the arm downward
         if(opModeIsActive())
             robot.setArmRotation(0.1815);
         //pull arm down to place the specimen on the rung (PROCEED WITH CAUTION)
         if(opModeIsActive())
-            robot.setArmExtension(600);
+            robot.setArmExtension(590);
         //open claw
         if(opModeIsActive())
             robot.openClaw(true);
