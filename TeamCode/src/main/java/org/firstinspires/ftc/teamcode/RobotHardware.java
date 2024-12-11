@@ -100,7 +100,7 @@ public class RobotHardware {
      * maximum allowable limit based on the arm rotation position.
      * NOTE: This assumes that the fully retracted is currently set as 0 encoder value.
      */
-    public static final int ARM_EXTENSION_LIMIT_FULL = 2917;
+    public static final int ARM_EXTENSION_LIMIT_FULL = 2915;
 
     // Servo positions for claw
     // NOTE: these are [0, 1) within the min and max range set for the servo
@@ -186,7 +186,7 @@ public class RobotHardware {
     static final double ARM_ROTATION_VERTICAL = 0.22;
 
     // Limit the power to the rotation motor to prevent damage to the arm. This needs to be calibrated.
-    static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.6; // Factor to limit power to arm rotation motor
+    static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.7; // Factor to limit power to arm rotation motor
 
     // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
     static final double ARM_ROTATION_DEADBAND = 0.01; // Deadband range for arm rotation position
@@ -920,8 +920,8 @@ public class RobotHardware {
         position = clip(position, 0, ARM_EXTENSION_LIMIT_FULL);
 
         // set up the motor for run to position with the target encoder position
-        armExtensionMotor.setTargetPosition(position);
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        armExtensionMotor.setTargetPosition(position);
 
         // Power the motor to extend the arm
         armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
@@ -945,8 +945,8 @@ public class RobotHardware {
         int targetPos = (getArmRotation() < ARM_ROTATION_VERTICAL) ? ARM_EXTENSION_LIMIT_FULL : ARM_EXTENSION_LIMIT;
 
         // set up the motor for run to position with the target encoder position
-        armExtensionMotor.setTargetPosition(targetPos);
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        armExtensionMotor.setTargetPosition(targetPos);
 
         // Power the motor to extend the arm
         armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
@@ -992,8 +992,8 @@ public class RobotHardware {
         position = clip(position, 0, ARM_EXTENSION_LIMIT_FULL);
 
         // set up the motor for run to position with the target encoder position
-        armExtensionMotor.setTargetPosition(position);
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        armExtensionMotor.setTargetPosition(position);
 
         // Power the motor to extend the arm
         armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR * (slow ? 0.5 : 1.0));
@@ -1212,6 +1212,16 @@ public class RobotHardware {
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
 
+        // The first version of this function moved and oriented the robot in all three "axes" (X,
+        // Y, and heading) at the same time. While it worked, it was wonky in the translation with
+        // overshoot and correction. This may be due to the fact that the transform (rotation) of
+        // coordinates from the field coordinate plane to robot-oriented plane used is inherently
+        // linear and calculating x,y translation along with rotation just doesn't work out.
+        // This version uses two passes through the camera loop: 1) yaw (rotate) to correct the
+        // heading, then 2) move the robot to the correct x, y position while maintaining heading.
+        // This will (hopefully) reduce the wonky movement.
+        boolean firstPass = true;
+
         // If vision was not initialized or camera(s) are not enabled, then return
         if (visionPortal == null || visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)
             return;
@@ -1289,10 +1299,16 @@ public class RobotHardware {
                         Math.abs(errorY) < Y_POSITION_TOLERANCE &&
                         Math.abs(errorH) < HEADING_TOLERANCE)
                     break;
+                // otherwise, if the we are in the first (heading only) pass and the heading is
+                // within tolerance, then proceed to the second (x,y movement) pass.
+                else if (firstPass && Math.abs(errorH) < HEADING_TOLERANCE)
+                    firstPass = false;
 
-                // Calculate the control output for each of the three controllers
-                double xPower = clip(errorX * X_CONTROLLER_KP, -1.0, 1.0);
-                double yPower = clip(errorY * Y_CONTROLLER_KP, -1.0, 1.0);
+                // Calculate "power" for each of the three motor axes using proportional gains
+                // NOTE: for the first (heading only) pass, just set the x and y power values to
+                // zero.
+                double xPower = firstPass ? 0 : clip(errorX * X_CONTROLLER_KP, -1.0, 1.0);
+                double yPower = firstPass ? 0 : clip(errorY * Y_CONTROLLER_KP, -1.0, 1.0);
                 double yawPower = clip(errorH * YAW_CONTROLLER_KP, -1.0, 1.0);
 
                 // Move the robot based on the calculated powers
