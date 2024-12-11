@@ -920,8 +920,8 @@ public class RobotHardware {
         position = clip(position, 0, ARM_EXTENSION_LIMIT_FULL);
 
         // set up the motor for run to position with the target encoder position
-        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
         armExtensionMotor.setTargetPosition(position);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
         armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
@@ -945,8 +945,8 @@ public class RobotHardware {
         int targetPos = (getArmRotation() < ARM_ROTATION_VERTICAL) ? ARM_EXTENSION_LIMIT_FULL : ARM_EXTENSION_LIMIT;
 
         // set up the motor for run to position with the target encoder position
-        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
         armExtensionMotor.setTargetPosition(targetPos);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
         armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
@@ -992,8 +992,8 @@ public class RobotHardware {
         position = clip(position, 0, ARM_EXTENSION_LIMIT_FULL);
 
         // set up the motor for run to position with the target encoder position
-        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
         armExtensionMotor.setTargetPosition(position);
+        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
         armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR * (slow ? 0.5 : 1.0));
