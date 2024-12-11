@@ -19,7 +19,7 @@ public class RungAutoOpMode extends LinearOpMode {
     RobotHardware robot = new RobotHardware(this);
 
     // Declare OpMode members.
-    private ElapsedTime runtime = new ElapsedTime();
+    private final ElapsedTime runtime = new ElapsedTime();
 
 
 
@@ -115,7 +115,7 @@ public class RungAutoOpMode extends LinearOpMode {
             robot.turn(Math.PI/2,RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
         //move forward toward the rung
         if(opModeIsActive())
-            robot.forward(225, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
+            robot.forward(250, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
         //call the method "rungStrat"
         if(opModeIsActive())
             rungStrat();
