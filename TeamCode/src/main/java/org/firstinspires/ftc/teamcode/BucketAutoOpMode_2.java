@@ -8,10 +8,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Autonomous OpMode for Bucket Side operation in 2024-2025 INTO THE DEEP season.
  */
 
-@Autonomous(name="Left-side (Bucket) Autonomous", group="Competition")
+@Autonomous(name="Left-side (Bucket) Autonomous", group="Competition", preselectTeleOp = "Odometry-enabled Teleop")
 //@Disabled
 
-public class BucketAutoOpMode extends LinearOpMode {
+public class BucketAutoOpMode_2 extends LinearOpMode {
 
     // Create a RobotHardware object to be used to access robot hardware.
     // Prefix any hardware functions with "robot." to access this class.
@@ -23,28 +23,32 @@ public class BucketAutoOpMode extends LinearOpMode {
 
     // 0.5 = straight up
     public void dropInBucket() {
+
         //rotate arm upwards to field.
         if (opModeIsActive())
-            robot.setArmRotation(0.14);
+            robot.setArmRotation(0.11);
+
         //extend arm
         if (opModeIsActive())
-            robot.setArmExtension(1650);
+            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT_FULL);
+
         //approach bucket
         if (opModeIsActive())
-            robot.forward(90, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(80, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
         //release claw to drop block and close claw
         if (opModeIsActive())
             robot.openClaw(true);
-        //extend arm
-        if (opModeIsActive())
-            robot.setArmExtension(1650);
+
         //the Scoot!
         if (opModeIsActive())
             robot.forward(-90, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
+
         //retract the arm
         if (opModeIsActive())
             robot.setArmExtension(0);
-        //rotate arm back
+
+        //rotate arm down
         if (opModeIsActive())
             robot.setArmRotation(RobotHardware.ARM_ROTATION_MIN);
     }
@@ -69,6 +73,7 @@ public class BucketAutoOpMode extends LinearOpMode {
         // Check if the opMode is still active (end of autonomous period or driver presses STOP)
         // before each command
 
+        /***** Place pre-loaded sample in bucket *****/
         //Move off the wall
         if (opModeIsActive())
             robot.forward(250,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
@@ -85,10 +90,54 @@ public class BucketAutoOpMode extends LinearOpMode {
         if (opModeIsActive())
             robot.turn(Math.PI/4,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
-        // call method to drop block in bucket
+        // call method to drop block in (high) bucket
         if (opModeIsActive())
             dropInBucket();
 
+        /***** Retrieve second sample and place in bucket *****/
+        // backoff from bucket to align center of rotation with outer spike
+        if (opModeIsActive())
+            robot.forward(-500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        //turn to face blue wall
+        if(opModeIsActive())
+            robot.turn(-3 * Math.PI / 4, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        // move to grip point of second sample
+        if (opModeIsActive())
+            robot.forward(200,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        // We may want to correct position using AprilTag here
+        //if (opModeIsActive())
+        //    robot.moveToPositionUsingAprilTag(-1301.6, -1083.0, 1.607, 1, 16, RobotHardware.MOTOR_SPEED_FACTOR_PRECISE);
+
+        // pickup sample from spike
+        if (opModeIsActive()) {
+            robot.setArmRotation(0.377); // rotate arm down to grip position
+            robot.setArmExtension(1182); // extend arm to grip position
+            robot.closeClaw(true); // close claw to tight grip
+            robot.setArmRotation(0.25); // rotate arm up
+            robot.setArmExtension(500); // retract arm for easier movement
+        }
+
+        // Reverse the steps above to move back to bucket
+        // move back from grip point of second sample
+        if (opModeIsActive())
+            robot.forward(-200,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        //turn back to face bucket
+        if(opModeIsActive())
+            robot.turn(3 * Math.PI / 4, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        // move back to bucket drop position
+        if (opModeIsActive())
+            robot.forward(500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        // drop second sample in high bucket
+        if (opModeIsActive())
+            dropInBucket();
+
+        /***** End Game *****/
         // backoff from bucket to clear samples on spikes
         if (opModeIsActive())
             robot.forward(-620,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);

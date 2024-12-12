@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 /*
 The idea of this Class is to have a backup just in case we are not on the left.
  */
-@Autonomous(name="Right-Side (Rung) Autonomous (2)", group="Test",preselectTeleOp = "Two-controller Teleop")
+@Autonomous(name="Right-Side (Rung) Autonomous (2)", group="Test", preselectTeleOp = "Odometry-enabled Teleop")
 //@Disabled
 public class RungAutoOpMode_2 extends LinearOpMode {
 

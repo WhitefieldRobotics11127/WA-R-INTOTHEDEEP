@@ -1005,11 +1005,14 @@ public class RobotHardware {
             // loop condition.
         }
 
+        // since this function is called from linear opmodes during autonomous, and at least to date
+        // is only called from autonomous opmodes, no need to stop the motor or reset the mode back
+        // to RUN_USING_ENCODER. The motor will stop when the target position is reached and hold
+        // that position until the a new target position is set.
         // stop the motor
-        armExtensionMotor.setPower(0.0);
-
+        //armExtensionMotor.setPower(0.0);
         // reset the motor settings
-        armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        //armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
 
     /**
