@@ -30,16 +30,15 @@ public class RungAutoOpMode extends LinearOpMode {
             robot.setArmRotation(0.19);
         //move towards the rung and extend arm at the same time
         if(opModeIsActive())
-            robot.setArmExtension(1600);
-
+            robot.setArmExtension(2200);
         if(opModeIsActive())
-            robot.forward(275, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(40, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         //rotate the arm downward
         if(opModeIsActive())
-            robot.setArmRotation(0.1815);
-        //pull arm down to place the specimen on the rung (PROCEED WITH CAUTION)
+            robot.setArmRotation(0.25);
+        //pull arm down to place the specimen on the rung (PROCEED SLOWLY)
         if(opModeIsActive())
-            robot.setArmExtension(590);
+            robot.setArmExtension(1100);
         //open claw
         if(opModeIsActive())
             robot.openClaw(true);
@@ -51,7 +50,7 @@ public class RungAutoOpMode extends LinearOpMode {
             robot.setArmRotation(RobotHardware.ARM_ROTATION_MAX);
 //robot moves away from the box
         if(opModeIsActive())
-            robot.forward(-275, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(-40, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
     }
     @Override
 
