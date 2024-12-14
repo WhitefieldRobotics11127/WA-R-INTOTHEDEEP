@@ -981,9 +981,10 @@ public class RobotHardware {
      * loop to cover the extension of the arm the specified position using RUN_TO_ENCODER in the
      * arm extension motor (with built-in PID controller).
      * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
+     * @param slow extend/retract slowly
      * @param hold true to have the motor keep the arm at the specified position until changed
      */
-    public void setArmExtension(int position, boolean hold) {
+    public void setArmExtension(int position, boolean slow, boolean hold) {
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -996,7 +997,7 @@ public class RobotHardware {
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
-        armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
+        armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR * ((slow) ? 0.4 : 1.0));
 
         // loop until the arm extension has reached the desired position
         while ((!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) && armExtensionMotor.isBusy()){
@@ -1018,11 +1019,11 @@ public class RobotHardware {
 
     /**
      * Extend the arm to the specified position (encoder value).
-     * Overrides setArmExtension(position, hold) and passes false to hold parameter.
-     * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
+     * Overrides setArmExtension(position, slow, hold) and passes false to slow and hold parameters.
+     * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT_FULL
      */
     public void setArmExtension(int position) {
-        setArmExtension(position,false);
+        setArmExtension(position,false, false);
     }
 
     /**

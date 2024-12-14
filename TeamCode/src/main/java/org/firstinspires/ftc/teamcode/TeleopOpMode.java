@@ -128,9 +128,10 @@ public class TeleopOpMode extends OpMode
         else if(gamepad1.y) {
             loganButton = speedFactor;
         }
-        else {
-            System.out.println("Logan probably messed up the code.");
-        }
+        //else {
+        //    System.out.println("Logan probably messed up the code.");
+        //}
+
         // If d-pad input provided, ignore joystick input(s)
         if(gamepad1.dpad_up || gamepad1.dpad_down || gamepad1.dpad_left || gamepad1.dpad_right) {
 

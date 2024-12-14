@@ -24,26 +24,42 @@ public class RungAutoOpMode extends LinearOpMode {
     public void rungStrat() {
         //rotating the arm straight up
         if(opModeIsActive())
-            robot.setArmRotation(0.19);
+            robot.setArmRotation(0.17);
+
         //move towards the rung and extend arm at the same time
         if(opModeIsActive())
             robot.setArmExtension(1600);
 
         if(opModeIsActive())
             robot.forward(230, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
+        // rotate down to touch rung
+        if(opModeIsActive())
+            robot.setArmRotation(0.20);
+
+        // let arm settle
+        sleep(800);
+
+        // lighten grip
+        robot.closeClaw(false);
+
         //pull arm down to place the specimen on the rung (PROCEED WITH CAUTION)
         if(opModeIsActive())
-            robot.setArmExtension(700);
+            robot.setArmExtension(700, true, false);
+
         //open claw
         if(opModeIsActive())
             robot.openClaw(true);
+
         //retract arm
         if (opModeIsActive())
             robot.setArmExtension(0);
+
         //rotate arm fully downward
         if (opModeIsActive())
             robot.setArmRotation(0.35);
-//robot moves away from the box
+
+       //robot moves away from rung
         if(opModeIsActive())
             robot.forward(-230, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
     }
@@ -72,29 +88,37 @@ public class RungAutoOpMode extends LinearOpMode {
         //move bot off the wall
         if(opModeIsActive())
             robot.forward(100, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
+
         //strafe left
         if(opModeIsActive())
             robot.strafe(250, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
+
         if(opModeIsActive())
             robot.forward(250, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
+
         //call the method "rungStrat"
         if(opModeIsActive())
             rungStrat();
         //go to wall
+
         if(opModeIsActive())
-            robot.forward(-250, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
+            robot.forward(-200, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
         //turn towards wall 2
+
         if(opModeIsActive())
             robot.turn(-(Math.PI/2), RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
         //robot move towards the wall
+
         if(opModeIsActive())
             robot.forward(660, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         //open claw for specimen on the floor
+
         if(opModeIsActive()) {
             robot.setArmRotation(0.3755);
-            sleep(400);
+            sleep(800);
         }
         //extend downwards
+
         robot.setArmExtension(1251);
         //close claw to capture specimen on the wall
         if(opModeIsActive())
@@ -113,7 +137,7 @@ public class RungAutoOpMode extends LinearOpMode {
             robot.turn(Math.PI/2,RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
         //move forward toward the rung
         if(opModeIsActive())
-            robot.forward(250, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
+            robot.forward(240, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
         //call the method "rungStrat"
         if(opModeIsActive())
             rungStrat();

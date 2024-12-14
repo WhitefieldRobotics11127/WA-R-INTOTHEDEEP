@@ -27,7 +27,7 @@ public class BucketAutoOpMode extends LinearOpMode {
 
         //extend arm
         if (opModeIsActive())
-            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT_FULL, true);
+            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT_FULL, false, true);
 
         //approach bucket
         if (opModeIsActive())
