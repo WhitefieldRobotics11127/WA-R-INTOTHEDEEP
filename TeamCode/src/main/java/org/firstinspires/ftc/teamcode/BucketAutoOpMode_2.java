@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Autonomous OpMode for Bucket Side operation in 2024-2025 INTO THE DEEP season.
  */
 
-@Autonomous(name="Left-side (Bucket) Autonomous", group="Competition", preselectTeleOp = "Odometry-enabled Teleop")
+@Autonomous(name="Left-side (Bucket) Autonomous (2)", group="Competition", preselectTeleOp = "Odometry-enabled Teleop")
 //@Disabled
 
 public class BucketAutoOpMode_2 extends LinearOpMode {
@@ -20,8 +20,6 @@ public class BucketAutoOpMode_2 extends LinearOpMode {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
 
-
-    // 0.5 = straight up
     public void dropInBucket() {
 
         //rotate arm upwards to field.
@@ -42,15 +40,15 @@ public class BucketAutoOpMode_2 extends LinearOpMode {
 
         //the Scoot!
         if (opModeIsActive())
-            robot.forward(-90, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
+            robot.forward(-80, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
 
         //retract the arm
         if (opModeIsActive())
-            robot.setArmExtension(0);
+            robot.setArmExtension(200);
 
         //rotate arm down
         if (opModeIsActive())
-            robot.setArmRotation(RobotHardware.ARM_ROTATION_MIN);
+            robot.setArmRotation(0.35);
     }
     @Override
     public void runOpMode() {
@@ -76,19 +74,21 @@ public class BucketAutoOpMode_2 extends LinearOpMode {
         /***** Place pre-loaded sample in bucket *****/
         //Move off the wall
         if (opModeIsActive())
-            robot.forward(250,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(250,RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
 
-        //turn to face the bucket
+        //turn to face the audience wall
+        // Increased from PI/2
         if (opModeIsActive())
-            robot.turn(Math.PI/2,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.turn(Math.PI / 2,RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
 
         // move toward bucket wall
         if (opModeIsActive())
-            robot.forward(970,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(960,RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
 
         // rotate toward the bucket
+        // Increased from PI/4 (45 degrees)
         if (opModeIsActive())
-            robot.turn(Math.PI/4,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.turn(.80,RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
 
         // call method to drop block in (high) bucket
         if (opModeIsActive())
@@ -97,15 +97,11 @@ public class BucketAutoOpMode_2 extends LinearOpMode {
         /***** Retrieve second sample and place in bucket *****/
         // backoff from bucket to align center of rotation with outer spike
         if (opModeIsActive())
-            robot.forward(-500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(-250,RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
 
-        //turn to face blue wall
+        //turn to face blue wall (sample location)
         if(opModeIsActive())
             robot.turn(-3 * Math.PI / 4, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-
-        // move to grip point of second sample
-        if (opModeIsActive())
-            robot.forward(200,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
         // We may want to correct position using AprilTag here
         //if (opModeIsActive())
@@ -113,17 +109,17 @@ public class BucketAutoOpMode_2 extends LinearOpMode {
 
         // pickup sample from spike
         if (opModeIsActive()) {
-            robot.setArmRotation(0.377); // rotate arm down to grip position
-            robot.setArmExtension(1182); // extend arm to grip position
+            robot.setArmRotation(0.40); // rotate arm down to grip position
+            robot.setArmExtension(1300); // extend arm to grip position
             robot.closeClaw(true); // close claw to tight grip
-            robot.setArmRotation(0.25); // rotate arm up
-            robot.setArmExtension(500); // retract arm for easier movement
+            robot.setArmRotation(0.27); // rotate arm up
+            robot.setArmExtension(200); // retract arm for easier movement
         }
 
         // Reverse the steps above to move back to bucket
         // move back from grip point of second sample
-        if (opModeIsActive())
-            robot.forward(-200,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+        //if (opModeIsActive())
+        //    robot.forward(0,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
         //turn back to face bucket
         if(opModeIsActive())
@@ -131,7 +127,7 @@ public class BucketAutoOpMode_2 extends LinearOpMode {
 
         // move back to bucket drop position
         if (opModeIsActive())
-            robot.forward(500,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(250,RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
 
         // drop second sample in high bucket
         if (opModeIsActive())
@@ -140,7 +136,7 @@ public class BucketAutoOpMode_2 extends LinearOpMode {
         /***** End Game *****/
         // backoff from bucket to clear samples on spikes
         if (opModeIsActive())
-            robot.forward(-620,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(-620,RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
 
         //turn to face blue wall
         // reduced from -3pi/4 (-135 degrees) to try and fix apparent overshoot

@@ -81,7 +81,7 @@ public class RobotHardware {
      * NOTE: Fully rotated down is the "maximum" position (within 0.0 to 1.0 range) in order to 
      * directly track with position sensor (potentiometer) values. 
      */
-    public static final double ARM_ROTATION_MAX = 0.39;
+    public static final double ARM_ROTATION_MAX = 0.41;
 
     // Limits for extension of arm.
     /**
@@ -189,8 +189,8 @@ public class RobotHardware {
     static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.7; // Factor to limit power to arm rotation motor
 
     // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
-    static final double ARM_ROTATION_DEADBAND = 0.01; // Deadband range for arm rotation position
-    static final double ARM_ROTATION_TOLERANCE = 0.025; // Tolerance for arm rotation position
+    static final double ARM_ROTATION_DEADBAND = 0.00; // Deadband range for arm rotation position
+    static final double ARM_ROTATION_TOLERANCE = 0.015; // Tolerance for arm rotation position
     static final double ARM_ROTATION_KP = 10.0; // Proportional gain for arm rotation position error
 
     // Maximum voltage from arm rotation potentiometer
@@ -983,7 +983,7 @@ public class RobotHardware {
      * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
      * @param slow true to extend the arm slowly, false to extend at full speed
      */
-    public void setArmExtension(int position, boolean slow) {
+    public void setArmExtension(int position, boolean slow, boolean hold) {
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -1005,14 +1005,15 @@ public class RobotHardware {
             // loop condition.
         }
 
-        // since this function is called from linear opmodes during autonomous, and at least to date
-        // is only called from autonomous opmodes, no need to stop the motor or reset the mode back
+        //If the hold parameter is set, skip stopping the motor and resetting the mode back
         // to RUN_USING_ENCODER. The motor will stop when the target position is reached and hold
         // that position until the a new target position is set.
-        // stop the motor
-        //armExtensionMotor.setPower(0.0);
-        // reset the motor settings
-        //armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        if (!hold) {
+            // stop the motor
+            armExtensionMotor.setPower(0.0);
+            // reset the motor settings
+            armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        }
     }
 
     /**
@@ -1021,7 +1022,7 @@ public class RobotHardware {
      * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
      */
     public void setArmExtension(int position) {
-        setArmExtension(position, false);
+        setArmExtension(position, false, false);
     }
 
     /**

@@ -21,9 +21,6 @@ public class RungAutoOpMode extends LinearOpMode {
     // Declare OpMode members.
     private final ElapsedTime runtime = new ElapsedTime();
 
-
-
-
     public void rungStrat() {
         //rotating the arm straight up
         if(opModeIsActive())
@@ -33,13 +30,10 @@ public class RungAutoOpMode extends LinearOpMode {
             robot.setArmExtension(1600);
 
         if(opModeIsActive())
-            robot.forward(275, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-        //rotate the arm downward
-        if(opModeIsActive())
-            robot.setArmRotation(0.1815);
+            robot.forward(230, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         //pull arm down to place the specimen on the rung (PROCEED WITH CAUTION)
         if(opModeIsActive())
-            robot.setArmExtension(590);
+            robot.setArmExtension(700);
         //open claw
         if(opModeIsActive())
             robot.openClaw(true);
@@ -48,10 +42,10 @@ public class RungAutoOpMode extends LinearOpMode {
             robot.setArmExtension(0);
         //rotate arm fully downward
         if (opModeIsActive())
-            robot.setArmRotation(RobotHardware.ARM_ROTATION_MAX);
+            robot.setArmRotation(0.35);
 //robot moves away from the box
         if(opModeIsActive())
-            robot.forward(-275, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(-230, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
     }
     @Override
 
@@ -88,22 +82,26 @@ public class RungAutoOpMode extends LinearOpMode {
             rungStrat();
         //go to wall
         if(opModeIsActive())
-            robot.forward(-225, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
+            robot.forward(-250, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
         //turn towards wall 2
         if(opModeIsActive())
             robot.turn(-(Math.PI/2), RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
         //robot move towards the wall
         if(opModeIsActive())
-            robot.forward(625, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
+            robot.forward(660, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         //open claw for specimen on the floor
-        robot.setArmRotation(0.377);
+        if(opModeIsActive()) {
+            robot.setArmRotation(0.3755);
+            sleep(400);
+        }
         //extend downwards
-        robot.setArmExtension(1182);
+        robot.setArmExtension(1251);
         //close claw to capture specimen on the wall
         if(opModeIsActive())
             robot.closeClaw(true);
         //rotate arm upward
-        robot.setArmRotation(0.25);
+        if(opModeIsActive())
+            robot.setArmRotation(0.25);
         //retract arm back
         if(opModeIsActive())
             robot.setArmExtension(500);

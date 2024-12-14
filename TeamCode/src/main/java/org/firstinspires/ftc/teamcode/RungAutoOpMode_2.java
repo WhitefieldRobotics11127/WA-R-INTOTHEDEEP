@@ -21,9 +21,6 @@ public class RungAutoOpMode_2 extends LinearOpMode {
     // Declare OpMode members.
     private final ElapsedTime runtime = new ElapsedTime();
 
-
-
-
     public void rungStrat() {
         //rotating the arm straight up
         if(opModeIsActive())

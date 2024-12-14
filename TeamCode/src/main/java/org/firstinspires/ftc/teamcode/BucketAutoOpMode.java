@@ -25,28 +25,25 @@ public class BucketAutoOpMode extends LinearOpMode {
     public void dropInBucket() {
         //rotate arm upwards to field.
         if (opModeIsActive())
-            robot.setArmRotation(0.14);
+            robot.setArmRotation(0.11);
         //extend arm
         if (opModeIsActive())
-            robot.setArmExtension(1650);
+            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT_FULL, false, true);
         //approach bucket
         if (opModeIsActive())
-            robot.forward(90, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(130, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         //release claw to drop block and close claw
         if (opModeIsActive())
-            robot.openClaw(true);
-        //extend arm
-        if (opModeIsActive())
-            robot.setArmExtension(1650);
+            robot.openClaw(false);
         //the Scoot!
         if (opModeIsActive())
-            robot.forward(-90, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
+            robot.forward(-110, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
         //retract the arm
         if (opModeIsActive())
-            robot.setArmExtension(0);
+            robot.setArmExtension(200);
         //rotate arm back
         if (opModeIsActive())
-            robot.setArmRotation(RobotHardware.ARM_ROTATION_MIN);
+            robot.setArmRotation(.19);
     }
     @Override
     public void runOpMode() {
