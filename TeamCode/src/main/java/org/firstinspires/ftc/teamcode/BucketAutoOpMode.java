@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Autonomous OpMode for Bucket Side operation in 2024-2025 INTO THE DEEP season.
  */
 
-@Autonomous(name="Left-side (Bucket) Autonomous", group="Competition")
+@Autonomous(name="Left-side (Bucket) Autonomous", group="Competition", preselectTeleOp = "Two-controller Teleop")
 //@Disabled
 
 public class BucketAutoOpMode extends LinearOpMode {
@@ -20,27 +20,31 @@ public class BucketAutoOpMode extends LinearOpMode {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
 
-
-    // 0.5 = straight up
     public void dropInBucket() {
         //rotate arm upwards to field.
         if (opModeIsActive())
-            robot.setArmRotation(0.11);
+            robot.setArmRotation(0.12);
+
         //extend arm
         if (opModeIsActive())
-            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT_FULL, false, true);
+            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT_FULL, true);
+
         //approach bucket
         if (opModeIsActive())
             robot.forward(130, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+
         //release claw to drop block and close claw
         if (opModeIsActive())
             robot.openClaw(false);
+
         //the Scoot!
         if (opModeIsActive())
-            robot.forward(-110, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
+            robot.forward(-130, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS );
+
         //retract the arm
         if (opModeIsActive())
             robot.setArmExtension(200);
+
         //rotate arm back
         if (opModeIsActive())
             robot.setArmRotation(.19);
@@ -76,7 +80,7 @@ public class BucketAutoOpMode extends LinearOpMode {
 
         // move toward bucket wall
         if (opModeIsActive())
-            robot.forward(970,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(960,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
         // rotate toward the bucket
         if (opModeIsActive())

@@ -75,13 +75,13 @@ public class RobotHardware {
      * NOTE: Fully upright arm is the "minimum" position (within 0.0 to 1.0 range) in order to 
      * directly track with position sensor (potentiometer) values. 
      */
-    public static final double ARM_ROTATION_MIN = 0.1;
+    public static final double ARM_ROTATION_MIN = 0.10;
     /**
      * Maximum safe rotational position for arm.
      * NOTE: Fully rotated down is the "maximum" position (within 0.0 to 1.0 range) in order to 
      * directly track with position sensor (potentiometer) values. 
      */
-    public static final double ARM_ROTATION_MAX = 0.41;
+    public static final double ARM_ROTATION_MAX = 0.40;
 
     // Limits for extension of arm.
     /**
@@ -189,9 +189,9 @@ public class RobotHardware {
     static final double ARM_ROTATION_POWER_LIMIT_FACTOR = 0.7; // Factor to limit power to arm rotation motor
 
     // Tolerances and proportional gain values for arm rotation position controller. These need to be calibrated.
-    static final double ARM_ROTATION_DEADBAND = 0.00; // Deadband range for arm rotation position
-    static final double ARM_ROTATION_TOLERANCE = 0.015; // Tolerance for arm rotation position
-    static final double ARM_ROTATION_KP = 10.0; // Proportional gain for arm rotation position error
+    static final double ARM_ROTATION_DEADBAND = 0.006; // Deadband range for arm rotation position
+    static final double ARM_ROTATION_TOLERANCE = 0.012; // Tolerance for arm rotation position
+    static final double ARM_ROTATION_KP = 25.0; // Proportional gain for arm rotation position error
 
     // Maximum voltage from arm rotation potentiometer
     // NOTE: this is set in init() from the getMaxVoltage() method on the potentiometer and
@@ -981,9 +981,9 @@ public class RobotHardware {
      * loop to cover the extension of the arm the specified position using RUN_TO_ENCODER in the
      * arm extension motor (with built-in PID controller).
      * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
-     * @param slow true to extend the arm slowly, false to extend at full speed
+     * @param hold true to have the motor keep the arm at the specified position until changed
      */
-    public void setArmExtension(int position, boolean slow, boolean hold) {
+    public void setArmExtension(int position, boolean hold) {
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -996,7 +996,7 @@ public class RobotHardware {
         armExtensionMotor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
         // Power the motor to extend the arm
-        armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR * (slow ? 0.5 : 1.0));
+        armExtensionMotor.setPower(ARM_EXTENSION_POWER_LIMIT_FACTOR);
 
         // loop until the arm extension has reached the desired position
         while ((!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive()) && armExtensionMotor.isBusy()){
@@ -1018,11 +1018,11 @@ public class RobotHardware {
 
     /**
      * Extend the arm to the specified position (encoder value).
-     * Overrides setArmExtension(position, slow) and passes false to slow
+     * Overrides setArmExtension(position, hold) and passes false to hold parameter.
      * @param position the desired position for the extension, between 0 and ARM_EXTENSION_LIMIT
      */
     public void setArmExtension(int position) {
-        setArmExtension(position, false, false);
+        setArmExtension(position,false);
     }
 
     /**

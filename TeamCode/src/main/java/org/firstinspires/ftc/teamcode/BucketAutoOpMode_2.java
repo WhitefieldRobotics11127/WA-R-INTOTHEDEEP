@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Autonomous OpMode for Bucket Side operation in 2024-2025 INTO THE DEEP season.
  */
 
-@Autonomous(name="Left-side (Bucket) Autonomous (2)", group="Competition", preselectTeleOp = "Odometry-enabled Teleop")
+@Autonomous(name="Left-side (Bucket) Autonomous (2)", group="Test", preselectTeleOp = "Odometry-enabled Teleop")
 //@Disabled
 
 public class BucketAutoOpMode_2 extends LinearOpMode {
@@ -28,7 +28,7 @@ public class BucketAutoOpMode_2 extends LinearOpMode {
 
         //extend arm
         if (opModeIsActive())
-            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT_FULL);
+            robot.setArmExtension(RobotHardware.ARM_EXTENSION_LIMIT_FULL, true);
 
         //approach bucket
         if (opModeIsActive())
