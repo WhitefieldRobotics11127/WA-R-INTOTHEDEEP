@@ -1199,6 +1199,78 @@ public class RobotHardware {
     }
 
     /**
+     * Returns the robot's current field position and orientation ("pose") based on the specified
+     * AprilTag detected by specified camera.
+     * This method should only be called from a LinerOpMode and may delay for some period before
+     * returning the Pose3D object. If specified tag cannot be detected, returns null.
+     * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
+     * @param tagID tag ID to use to get position
+     */
+    public Pose3D getFieldPositionFromAprilTag(int camera, int tagID) {
+
+        // Maximum number of times the specified tag was not detected before breaking out of the loop
+        final int MAX_NO_DETECTION_COUNT = 5;
+
+        // current pose of robot
+        Pose3D currentPos = null;
+
+        // Flag to determine if called from a Liner OpMode
+        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
+        // If vision was not initialized or camera(s) are not enabled, then return
+        if (visionPortal == null || visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)
+            return null;
+
+        // Switch to the specified camera
+        switchCamera(camera);
+
+        // Counter for the number of times the specified tag was not detected
+        int notDetectedCount = 0;
+
+        // Loop until the the tag is detected
+        // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle()
+        // in the loop
+        // NOTE: Does this need to be done in two loops: one for traversal and one for rotation?
+        while (notDetectedCount <= MAX_NO_DETECTION_COUNT && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+
+            // get the latest AprilTag detections
+            ArrayList<AprilTagDetection> aprilTags = getAprilTags();
+
+            // Find specified tag in the current detections (or set the first one found if no tag
+            // ID specified)
+            AprilTagDetection target = null;
+            for (AprilTagDetection tag : aprilTags) {
+                if (tag.id == tagID || tagID == 0) {
+                    target = tag;
+                    break;  // don't look any further
+                }
+            }
+
+            // If the specified tag was detected, calculate robot movement
+            if (target != null) {
+
+                // retrieve the current field position of the robot and exit the loop
+                currentPos = aprilTags.get(0).robotPose;
+                break;
+            }
+
+            // otherwise, if the specified tag was not detected, increment the counter
+            else
+                notDetectedCount++;
+
+            // Wait some time for robot to move and new AprilTag detections to be acquired
+            if(isLinearOpMode)
+                ((LinearOpMode) myOpMode).sleep(100);
+        }
+
+        // Turn off AprilTag detection
+        switchCamera(0);
+
+        // return the detected robot position (if any)
+        return currentPos;
+    }
+
+/**
      * Move robot to specified field coordinate position (X, Y) and heading in MM and radians based
      * on the specified AprilTag detected by specified camera.
      * This method should only be called from a LinerOpMode and implements its own
@@ -1207,6 +1279,7 @@ public class RobotHardware {
      * @param y y-coordinate of center of robot in field coordinates (MM)
      * @param heading current angle of robot relative to positive x-axis in field coordinates (rad)
      * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
+     * @param tagID tag ID to use to get position
      * @param speed Speed factor to apply (should use defined constants)
      */
     public void moveToPositionUsingAprilTag(double x, double y, double heading, int camera, int tagID, double speed) {

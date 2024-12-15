@@ -142,6 +142,9 @@ public class RungAutoOpMode extends LinearOpMode {
         if(opModeIsActive())
             rungStrat();
 
+        // Make sure robot stops and claw is open (teleop initialization default) before OpMode dies
+        robot.stop();
+        robot.openClaw(false);
 
     }
 }

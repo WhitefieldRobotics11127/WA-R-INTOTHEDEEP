@@ -117,7 +117,10 @@ public class BucketAutoOpMode extends LinearOpMode {
 
         //lower arm to contact rung
         if (opModeIsActive())
-            robot.setArmRotation(0.26);
+            robot.setArmRotation(0.25);
 
+        // Make sure robot stops and claw is open (teleop initialization default) before OpMode dies
+        robot.stop();
+        robot.openClaw(false);
     }
 }
