@@ -1204,7 +1204,7 @@ public class RobotHardware {
      * This method should only be called from a LinerOpMode and may delay for some period before
      * returning the Pose3D object. If specified tag cannot be detected, returns null.
      * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
-     * @param tagID tag ID to use to get position
+     * @param tagID tag ID to use to get position (int from competition library)
      */
     public Pose3D getFieldPositionFromAprilTag(int camera, int tagID) {
 
@@ -1279,7 +1279,7 @@ public class RobotHardware {
      * @param y y-coordinate of center of robot in field coordinates (MM)
      * @param heading current angle of robot relative to positive x-axis in field coordinates (rad)
      * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
-     * @param tagID tag ID to use to get position
+     * @param tagID tag ID to use to get position (int from competition library)
      * @param speed Speed factor to apply (should use defined constants)
      */
     public void moveToPositionUsingAprilTag(double x, double y, double heading, int camera, int tagID, double speed) {
