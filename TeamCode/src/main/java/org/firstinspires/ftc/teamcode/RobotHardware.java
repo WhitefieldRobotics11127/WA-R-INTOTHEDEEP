@@ -48,6 +48,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.ArrayList;
@@ -1199,20 +1200,22 @@ public class RobotHardware {
     }
 
     /**
-     * Returns the robot's current field position and orientation ("pose") based on the specified
-     * AprilTag detected by specified camera.
+     * Returns the position and orientation (pose) of the specified AprilTage relative to the
+     * specified camera. This can be used in autonomous OpModes to correct the robot's current
+     * position based on the anticipated, correct pose of the AprilTag from where the robot should
+     * be.
      * This method should only be called from a LinerOpMode and may delay for some period before
      * returning the Pose3D object. If specified tag cannot be detected, returns null.
      * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
      * @param tagID tag ID to use to get position (int from competition library)
      */
-    public Pose3D getFieldPositionFromAprilTag(int camera, int tagID) {
+    public AprilTagPoseFtc getAprilTagPose(int camera, int tagID) {
 
         // Maximum number of times the specified tag was not detected before breaking out of the loop
         final int MAX_NO_DETECTION_COUNT = 5;
 
         // current pose of robot
-        Pose3D currentPos = null;
+        AprilTagPoseFtc tagPose = null;
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
@@ -1246,11 +1249,11 @@ public class RobotHardware {
                 }
             }
 
-            // If the specified tag was detected, calculate robot movement
+            // If the specified tag was detected, return the pose of the tag
             if (target != null) {
 
                 // retrieve the current field position of the robot and exit the loop
-                currentPos = aprilTags.get(0).robotPose;
+                tagPose = aprilTags.get(0).ftcPose;
                 break;
             }
 
@@ -1267,10 +1270,83 @@ public class RobotHardware {
         switchCamera(0);
 
         // return the detected robot position (if any)
-        return currentPos;
+        return tagPose;
     }
 
-/**
+    /**
+     * Returns the longitudinal (camera's Y+ axis) distance in millimeters from the specified camera
+     * to the specified AprilTag. Note this is not a direct line distance (range) to the tag, but
+     * the distance along a line straight out of the camera lens and is always positive.
+     * This method should only be called from a LinerOpMode and may delay for some period before
+     * returning the distance. If specified tag cannot be detected, returns -1.
+     * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
+     * @param tagID tag ID to use to get position (int from competition library)
+     */
+    public double getLongitudinalDistanceToAprilTag(int camera, int tagID) {
+
+        // Maximum number of times the specified tag was not detected before breaking out of the loop
+        final int MAX_NO_DETECTION_COUNT = 5;
+
+        // return value for the distance to the tag
+        double dist = -1.0;
+
+        // Flag to determine if called from a Liner OpMode
+        boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
+
+        // If vision was not initialized or camera(s) are not enabled, then return
+        if (visionPortal == null || visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)
+            return dist;
+
+        // Switch to the specified camera
+        switchCamera(camera);
+
+        // Counter for the number of times the specified tag was not detected
+        int notDetectedCount = 0;
+
+        // Loop until the the tag is detected
+        // NOTE: opModeIsActive() calls idle() internally, so we don't need to call idle()
+        // in the loop
+        // NOTE: Does this need to be done in two loops: one for traversal and one for rotation?
+        while (notDetectedCount <= MAX_NO_DETECTION_COUNT && (!isLinearOpMode || ((LinearOpMode) myOpMode).opModeIsActive())) {
+
+            // get the latest AprilTag detections
+            ArrayList<AprilTagDetection> aprilTags = getAprilTags();
+
+            // Find specified tag in the current detections (or set the first one found if no tag
+            // ID specified)
+            AprilTagDetection target = null;
+            for (AprilTagDetection tag : aprilTags) {
+                if (tag.id == tagID || tagID == 0) {
+                    target = tag;
+                    break;  // don't look any further
+                }
+            }
+
+            // If the specified tag was detected, calculate the distance to the tag
+            if (target != null) {
+
+                // get the Y axis distance to the pose of the AprilTag and exit the loop
+                dist = aprilTags.get(0).ftcPose.y;
+                break;
+            }
+
+            // otherwise, if the specified tag was not detected, increment the counter
+            else
+                notDetectedCount++;
+
+            // Wait some time for robot to move and new AprilTag detections to be acquired
+            if(isLinearOpMode)
+                ((LinearOpMode) myOpMode).sleep(100);
+        }
+
+        // Turn off AprilTag detection
+        switchCamera(0);
+
+        // return the distance along detected robot position (if any)
+        return dist;
+    }
+
+    /**
      * Move robot to specified field coordinate position (X, Y) and heading in MM and radians based
      * on the specified AprilTag detected by specified camera.
      * This method should only be called from a LinerOpMode and implements its own
