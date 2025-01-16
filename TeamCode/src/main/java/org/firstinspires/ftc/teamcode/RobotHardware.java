@@ -143,7 +143,8 @@ public class RobotHardware {
     // The following values were last calibrated 2024-12-23
     static final double DEADWHEEL_MM_PER_TICK = 0.07486; // MM per encoder tick (initially calculated 48MM diameter wheel @ 2000 ticks per revolution)
     static final double DEADWHEEL_FORWARD_OFFSET = -106.0; //forward offset (length B) of aux deadwheel from robot center of rotation in MM (negative if behind)
-    static final double DEADWHEEL_TRACKWIDTH = 306.7; // distance (length L) between left and right deadwheels in MM
+    // 2025-01-15 Changed trackwidth from 306.7 to 305 to account for consistent over-rotation
+    static final double DEADWHEEL_TRACKWIDTH = 305; // distance (length L) between left and right deadwheels in MM
 
     /*
      * Constants for autonomous motion routines.

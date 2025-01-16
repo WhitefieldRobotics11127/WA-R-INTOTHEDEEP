@@ -109,7 +109,7 @@ public class BucketAutoOpMode extends LinearOpMode {
 
         //go to box thing
         if (opModeIsActive())
-            robot.forward(315,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(270,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
         //extend the arm
         if (opModeIsActive())

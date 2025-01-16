@@ -99,18 +99,20 @@ public class RungAutoOpMode extends LinearOpMode {
         //call the method "rungStrat"
         if(opModeIsActive())
             rungStrat();
+
         //go to wall
-
+        // 2025-01-15 Changed from -200 to -225 to account for pull forward when specimen is hung
         if(opModeIsActive())
-            robot.forward(-200, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
-        //turn towards wall 2
+            robot.forward(-225, RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
 
+        //turn towards wall 2
         if(opModeIsActive())
             robot.turn(-(Math.PI/2), RobotHardware.MOTOR_SPEED_FACTOR_NORMAL);
-        //robot move towards the wall
 
+        //robot move towards the wall
+        // 2025-01-15 Changed from -660 to -635 to align with second specimen
         if(opModeIsActive())
-            robot.forward(660, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(635, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
         //open claw for specimen on the floor
 
         if(opModeIsActive()) {
