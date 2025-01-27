@@ -13,11 +13,11 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.List;
 
 /*
- * OpMode to test/calibrate drivetrain and odometry
+ * OpMode to test vision and retrieve AprilTag pose and distance readings
  */
-@TeleOp(name= "Drivetrain test/calibration", group="Test")
+@TeleOp(name= "Vision/Distance Measurements", group="Test")
 //@Disabled
-public class MotionTest extends OpMode
+public class VisionTest extends OpMode
 {
     // Create a RobotHardware object to be used to access robot hardware.
     // Prefix any hardware functions with "robot." to access this class.
@@ -139,9 +139,9 @@ public class MotionTest extends OpMode
         lastGamepad2.copy(gamepad2);
 
         // Show the elapsed game time and odometry information
-        telemetry.addData("Status", "Running (%s)", runtime.toString());
-        telemetry.addData("Raw Encoders", "Left: %d, Right: %d, Aux: %d", robot.lastLeftEncoderPosition, robot.lastRightEncoderPosition, robot.lastAuxEncoderPosition);
+        telemetry.addData("Status", "Running (%s), Vision Enabled: %B", runtime.toString(), visionEnabled);
         telemetry.addData("Odometry", "x: %f mm, y: %f mm, hdg: %f rad", robot.getOdometryX(), robot.getOdometryY() , robot.getOdometryHeading());
+        telemetry.addData("Distances", "Front: %f mm, Rear: %f mm", robot.getFrontDistance(), robot.getRearDistance());
 
         // if vision is enabled, add AprilTag telemetry
         if(visionEnabled) {
@@ -163,7 +163,9 @@ public class MotionTest extends OpMode
 
         telemetry.addData("Status", "Stopped. Total Runtime: (%s)", runtime.toString());
         telemetry.addData("Odometry", "x: %f mm, y: %f mm, hdg: %f rad", robot.getOdometryX(), robot.getOdometryY() , robot.getOdometryHeading());
-        // if vision is enabled, add AprilTag telemetry
+        telemetry.addData("Distances", "Front: %f mm, Rear: %f mm", robot.getFrontDistance(), robot.getRearDistance());
+
+        // if vision is (was) enabled, add AprilTag telemetry
         if(visionEnabled) {
             addAprilTagTelemetry();
         }
@@ -178,16 +180,17 @@ public class MotionTest extends OpMode
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection tag : aprilTags) {
             if (tag.metadata != null) {
-                telemetry.addLine(String.format("\n==== (ID %d) %s @ %1.3f rad",
+                telemetry.addLine(String.format("\n==== (ID %d) %s @ %6.1f mm %1.3f rad",
                         tag.id,
                         tag.metadata.name,
+                        tag.ftcPose.range,
                         tag.ftcPose.bearing
                     )
                 );
-                telemetry.addLine(String.format("X: %6.1f mm, Y: %6.1f mm, H: %1.3f rad",
-                        tag.robotPose.getPosition().x,
-                        tag.robotPose.getPosition().y,
-                        tag.robotPose.getOrientation().getYaw(AngleUnit.RADIANS)
+                telemetry.addLine(String.format("Y: %6.1f mm, X: %6.1f mm, Yaw: %1.3f rad",
+                        tag.ftcPose.y,
+                        tag.ftcPose.x,
+                        tag.ftcPose.yaw
                     )
                 );
             }
