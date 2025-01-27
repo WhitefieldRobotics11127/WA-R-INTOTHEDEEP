@@ -36,6 +36,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -151,9 +152,11 @@ public class RobotHardware {
      * These may require a lot of tweaking.
      */
     // Tolerance values for closed-loop controllers for use in translate and rotate commands
-    static final double X_POSITION_TOLERANCE = 10; // Tolerance for position in MM (~ 1/2 inch)
-    static final double Y_POSITION_TOLERANCE = 10; // Tolerance for position in MM (~ 1/2 inch)
-    static final double HEADING_TOLERANCE = 0.034; // Tolerance for heading in radians (~2 degrees)
+    // NOTE: These were made public on 2025-01-27 for use in autonomous motion routines in figuring
+    // out how to reposition based on AprilTag poses and/or distance sensors.
+    public static final double X_POSITION_TOLERANCE = 10; // Tolerance for position in MM (~ 1/2 inch)
+    public static final double Y_POSITION_TOLERANCE = 10; // Tolerance for position in MM (~ 1/2 inch)
+    public static final double HEADING_TOLERANCE = 0.034; // Tolerance for heading in radians (~2 degrees)
     //static final double X_CONTROLLER_DEADBAND = 3.175; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
     //static final double Y_CONTROLLER_DEADBAND = 3.175; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
     //static final double YAW_CONTROLLER_DEADBAND = 0.01; // Deadband range for Yaw power calculation. Should be less than HEADING_TOLERANCE
@@ -261,13 +264,15 @@ public class RobotHardware {
 
     //private IMU imu; // IMU built into Rev Control Hub
 
+    private DistanceSensor frontDistanceSensor; // Distance sensor for detecting distance to wall or structure in front of robot
+    private DistanceSensor rearDistanceSensor; // Distance sensor for detecting distance to wall or structure behind robot
+
     /*
      * Variables for tracking robot state     
      */
     // last read odometry deadwheel encoder positions - used to calculate encoder deltas since last
     // call to updateOdometry()
-    // ***** NOTE: These are made public temporarily for initial testing/tuning purposes *****
-    public int lastRightEncoderPosition, lastLeftEncoderPosition, lastAuxEncoderPosition;
+    private int lastRightEncoderPosition, lastLeftEncoderPosition, lastAuxEncoderPosition;
 
     // translated x, y, and heading odometry counters in mm since last reset
     // NOTE: these are updated by the updateOdometry() method and used for simple movement commands
@@ -413,6 +418,10 @@ public class RobotHardware {
         //                )
         //        )
         //);
+
+        // Define distance sensor hardware instance variables
+        //frontDistanceSensor = myOpMode.hardwareMap.get(DistanceSensor.class, "front_distance");
+        //rearDistanceSensor = myOpMode.hardwareMap.get(DistanceSensor.class, "rear_distance");
 
         // Initialize the vision portal and the AprilTag processor(s)
         if (vision)
@@ -1088,6 +1097,24 @@ public class RobotHardware {
         return clawServo.getPosition();
     }
 
+    /* ----- Distance sensor methods ----- */
+
+    /**
+     * Retrieves the current distance reading from the front distance sensor.
+     * @return distance reading in MM
+     */
+    public double getFrontDistance() {
+        return frontDistanceSensor.getDistance(DistanceUnit.MM);
+    }
+
+    /**
+     * Retrieves the current distance reading from the rear distance sensor.
+     * @return distance reading in MM
+     */
+    public double getRearDistance() {
+        return rearDistanceSensor.getDistance(DistanceUnit.MM);
+    }
+
     /* ----- Vision processing methods ----- */
 
     // Initialize VisionPortal and AprilTagProcessor objects
@@ -1209,6 +1236,8 @@ public class RobotHardware {
      * returning the Pose3D object. If specified tag cannot be detected, returns null.
      * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
      * @param tagID tag ID to use to get position (int from competition library)
+     * @return Pose3D object with the position and orientation of the robot relative to the tag
+     * @see org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc
      */
     public AprilTagPoseFtc getAprilTagPose(int camera, int tagID) {
 
@@ -1275,21 +1304,22 @@ public class RobotHardware {
     }
 
     /**
-     * Returns the longitudinal (camera's Y+ axis) distance in millimeters from the specified camera
+     * Returns the longitudinal (camera's Y+ axis) distance from the specified camera
      * to the specified AprilTag. Note this is not a direct line distance (range) to the tag, but
      * the distance along a line straight out of the camera lens and is always positive.
      * This method should only be called from a LinerOpMode and may delay for some period before
      * returning the distance. If specified tag cannot be detected, returns -1.
      * @param camera camera to use for AprilTag detection (int 1, 2, etc.)
      * @param tagID tag ID to use to get position (int from competition library)
+     * @return distance in MM or 0 if tag is not detected
      */
     public double getLongitudinalDistanceToAprilTag(int camera, int tagID) {
 
         // Maximum number of times the specified tag was not detected before breaking out of the loop
         final int MAX_NO_DETECTION_COUNT = 5;
 
-        // return value for the distance to the tag
-        double dist = -1.0;
+        // return value for the distance to the tag (0 for not detected)
+        double dist = 0.0;
 
         // Flag to determine if called from a Liner OpMode
         boolean isLinearOpMode = myOpMode instanceof LinearOpMode;
