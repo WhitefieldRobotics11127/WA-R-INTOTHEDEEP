@@ -75,15 +75,27 @@ public class VisionTest extends OpMode
         // update the odometry for the robot
         robot.updateOdometry();
 
-        // check whether the right trigger is pressed and reset the odometry counters to 0
-        if (gamepad1.right_trigger >= 0.4 && lastGamepad1.right_trigger < 0.4) {
+        // check whether the the y button is pressed and reset the odometry counters to 0
+        if (gamepad1.y && !lastGamepad1.y) {
             robot.resetOdometryCounters();
         }
 
-        // check whether the left trigger is pressed and toggle AprilTag detection
+        // check whether the left trigger is pressed and toggle AprilTag detection on for camera 1
         if (gamepad1.left_trigger >= 0.4 && lastGamepad1.left_trigger < 0.4) {
             if (!visionEnabled) {
                 robot.switchCamera(1);
+                visionEnabled = true;
+            }
+            else {
+                robot.switchCamera(0);
+                visionEnabled = false;
+            }
+        }
+
+        // check whether the right trigger is pressed and toggle AprilTag detection on for camera 2
+        if (gamepad1.right_trigger >= 0.4 && lastGamepad1.right_trigger < 0.4) {
+            if (!visionEnabled) {
+                robot.switchCamera(2);
                 visionEnabled = true;
             }
             else {

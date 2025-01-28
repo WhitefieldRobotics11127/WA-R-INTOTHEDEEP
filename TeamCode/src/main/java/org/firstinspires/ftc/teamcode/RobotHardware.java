@@ -231,9 +231,13 @@ public class RobotHardware {
     // would have the camera pointing straight up, so we need to set the pitch to -90 degrees
     // (rotation about the x-axis), meaning the camera is horizontal.
     private final Position cam1Position = new Position(DistanceUnit.MM,
-            -201.6, -30.2, 101.6, 0);
+            -205.0, -36.0, 105.0, 0);
     private final YawPitchRollAngles cam1Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             0, -90, 0, 0);
+    private final Position cam2Position = new Position(DistanceUnit.MM,
+            205.0, -36.0, 105.0, 0);
+    private final YawPitchRollAngles cam2Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+            180, -90, 0, 0);
 
     /*
      * Hardware objects for current robot hardware.
@@ -252,7 +256,8 @@ public class RobotHardware {
     private Servo clawServo; // Servo for claw open/close
 
     private VisionPortal visionPortal; // Used to manage the camera input and activation of video processors.
-    private WebcamName webcam1; // For identifying webcam(s)
+    private WebcamName webcam1, webcam2; // For identifying webcam(s)
+
     // NOTE: Because we want the AprilTag processor to return field position, the precise "pose"
     // of the camera(s) on the robot has to be provided. However, the camera position is set through
     // parameters of the AprilTag processor and not connected directly to the camera, so we need a
@@ -260,12 +265,11 @@ public class RobotHardware {
     // us to (theoretically) perform AprilTag detection through multiple cameras simultaneously.
     // To use AprilTag detection, the code has to both set the camera input in the VisionPortal to
     // the desired camera and activate the corresponding AprilTag processor.
-    AprilTagProcessor aprilTagCam1; // Provides AprilTag detection through a specific camera.
+    AprilTagProcessor aprilTagCam1, aprilTagCam2; // Provides AprilTag detection through a specific camera.
 
     //private IMU imu; // IMU built into Rev Control Hub
 
-    private DistanceSensor frontDistanceSensor; // Distance sensor for detecting distance to wall or structure in front of robot
-    private DistanceSensor rearDistanceSensor; // Distance sensor for detecting distance to wall or structure behind robot
+    private DistanceSensor frontDistanceSensor, rearDistanceSensor; // Distance sensors for detecting distance to wall or structure in front of robot
 
     /*
      * Variables for tracking robot state     
@@ -420,8 +424,8 @@ public class RobotHardware {
         //);
 
         // Define distance sensor hardware instance variables
-        //frontDistanceSensor = myOpMode.hardwareMap.get(DistanceSensor.class, "front_distance");
-        //rearDistanceSensor = myOpMode.hardwareMap.get(DistanceSensor.class, "rear_distance");
+        frontDistanceSensor = myOpMode.hardwareMap.get(DistanceSensor.class, "front_distance");
+        rearDistanceSensor = myOpMode.hardwareMap.get(DistanceSensor.class, "rear_distance");
 
         // Initialize the vision portal and the AprilTag processor(s)
         if (vision)
@@ -1137,6 +1141,22 @@ public class RobotHardware {
             // ... these parameters are fx, fy, cx, cy.
             .build();
 
+        aprilTagCam2 = new AprilTagProcessor.Builder()
+
+                // un-comment and edit the following default settings as needed
+                //.setDrawAxes(false)
+                //.setDrawCubeProjection(false)
+                .setDrawTagOutline(false)
+                //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+                //.setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
+                .setOutputUnits(DistanceUnit.MM, AngleUnit.RADIANS)
+                .setCameraPose(cam2Position, cam2Orientation)
+                // If you do not manually specify calibration parameters, the SDK will attempt
+                // to load a predefined calibration for your camera.
+                //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
+                // ... these parameters are fx, fy, cx, cy.
+                .build();
+
         // Adjust image decimation to trade-off detection-range for detection-rate.
         // eg: Some typical detection data using a Logitech C920 WebCam
         // Decimation = 1 ..  Detect 2" Tag from 10 feet away at 10 Frames per second
@@ -1145,14 +1165,13 @@ public class RobotHardware {
         // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second (default)
         // Note: Decimation can be changed on-the-fly to adapt during a match.
         aprilTagCam1.setDecimation(3);
-        //aprilTagCam2.setDecimation(3);
+        aprilTagCam2.setDecimation(3);
 
         // setup webcam references for each camera
         webcam1 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1");
-        //webcam2 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 2");
+        webcam2 = myOpMode.hardwareMap.get(WebcamName.class, "Webcam 2");
         CameraName switchableCamera = ClassFactory.getInstance()
-            .getCameraManager().nameForSwitchableCamera(webcam1);
-            //.getCameraManager().nameForSwitchableCamera(webcam2);
+            .getCameraManager().nameForSwitchableCamera(webcam1, webcam2);
 
         // Create the vision portal by using a builder and setup for multiple webcams
         visionPortal = new VisionPortal.Builder()
@@ -1164,12 +1183,12 @@ public class RobotHardware {
             //.setAutoStopLiveView(false) //Choose whether or not LiveView stops if no processors are enabled.
             .setCameraResolution(new Size(1920, 1080)) // camera resolution (for all cameras ???)
             .addProcessor(aprilTagCam1)
-            //.addProcessor(aprilTagCam2)
+            .addProcessor(aprilTagCam2)
             .build();
 
         // Disable the aprilTag processor(s) until a camera is selected
         visionPortal.setProcessorEnabled(aprilTagCam1, false);
-        //visionPortal.setProcessorEnabled(aprilTagCam2, false);
+        visionPortal.setProcessorEnabled(aprilTagCam2, false);
     }
 
     /**
@@ -1184,18 +1203,18 @@ public class RobotHardware {
         if (camera == 1) {
             visionPortal.setActiveCamera(webcam1);
             visionPortal.setProcessorEnabled(aprilTagCam1, true);
-            //visionPortal.setProcessorEnabled(aprilTagCam2, false);
+            visionPortal.setProcessorEnabled(aprilTagCam2, false);
         }
         // if we have a second camera, activate it and its processor
-        //else if (camera == 2) {
-        //    visionPortal.setActiveCamera(webcam2);
-        //    visionPortal.setProcessorEnabled(aprilTagCam2, true);
-        //    visionPortal.setProcessorEnabled(aprilTagCam1, false);
-        //}
+        else if (camera == 2) {
+            visionPortal.setActiveCamera(webcam2);
+            visionPortal.setProcessorEnabled(aprilTagCam2, true);
+            visionPortal.setProcessorEnabled(aprilTagCam1, false);
+        }
         // if no camera specified, disable the AprilTag processor(s)
         else if (camera == 0) {
             visionPortal.setProcessorEnabled(aprilTagCam1, false);
-            //visionPortal.setProcessorEnabled(aprilTagCam2, false);
+            visionPortal.setProcessorEnabled(aprilTagCam2, false);
         }
     }
 
@@ -1205,8 +1224,8 @@ public class RobotHardware {
     public ArrayList<AprilTagDetection> getAprilTags() {
         if (visionPortal.getProcessorEnabled(aprilTagCam1))
             return aprilTagCam1.getDetections();
-        //else-if (visionPortal.getProcessorEnabled(aprilTagCam2))
-        //    return aprilTagCam2.getDetections();
+        else if (visionPortal.getProcessorEnabled(aprilTagCam2))
+            return aprilTagCam2.getDetections();
         else
             return new ArrayList<>();
     }
