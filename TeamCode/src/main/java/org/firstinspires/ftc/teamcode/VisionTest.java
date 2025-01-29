@@ -80,10 +80,11 @@ public class VisionTest extends OpMode
             robot.resetOdometryCounters();
         }
 
-        // check whether the left trigger is pressed and toggle AprilTag detection on for camera 1
+        // check whether the left trigger is pressed and toggle AprilTag detection on for
+        // left-side camera (Camera 2)
         if (gamepad1.left_trigger >= 0.4 && lastGamepad1.left_trigger < 0.4) {
             if (!visionEnabled) {
-                robot.switchCamera(1);
+                robot.switchCamera(2);
                 visionEnabled = true;
             }
             else {
@@ -92,10 +93,11 @@ public class VisionTest extends OpMode
             }
         }
 
-        // check whether the right trigger is pressed and toggle AprilTag detection on for camera 2
+        // check whether the right trigger is pressed and toggle AprilTag detection on for
+        // right-side camera (Camera 1)
         if (gamepad1.right_trigger >= 0.4 && lastGamepad1.right_trigger < 0.4) {
             if (!visionEnabled) {
-                robot.switchCamera(2);
+                robot.switchCamera(1);
                 visionEnabled = true;
             }
             else {

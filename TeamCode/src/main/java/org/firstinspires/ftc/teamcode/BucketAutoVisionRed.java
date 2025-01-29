@@ -83,31 +83,21 @@ public class BucketAutoVisionRed extends LinearOpMode {
          */
         // Measure the longitudinal (y) distance to the bucket wall using camera 1 and tag 16,
         // calculate distance to move towards bucket, then turn off the camera.
-        // NOTE: Using the nominal starting position, this distance reads distance at 1600 mm. The
-        // original distance of this move was 960 mm
+        // NOTE: Using the nominal starting position, this distance roughly reads distance 1197 mm.
+        // The original distance of this move was 960 mm
         robot.switchCamera(1);
-        double distanceToWall = robot.getLongitudinalDistanceToAprilTag(1, 16);
         double distanceToMove = 960;
+        double distanceToWall = robot.getLongitudinalDistanceToAprilTag(2, 16);
+        // add telemetry for debugging
+        telemetry.addData("Distance to Wall", "%6.1f mm", distanceToWall);
+        telemetry.update();
         if (distanceToWall >  0)
-            distanceToMove = (distanceToWall - 1600) - (1600 - 960);
+            distanceToMove = 960.0 - (1197.0 - distanceToWall);
         robot.switchCamera(0);
 
         //turn to face the bucket wall
         if (opModeIsActive())
             robot.turn(Math.PI/2,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
-
-        /* This is an example of using the distance sensor(s) to calculate a distance
-         * for an upcoming move based on the numbers that were originally used in the autonomous
-         * opmode.
-         */
-        // Measure the distance to the bucket wall using the front distance sensor, and
-        // then calculate distance to move towards bucket.
-        // NOTE: Using the nominal starting position, this distance reads distance at 1600 mm. The
-        // original distance of this move was 960 mm
-        //double distanceToWall = robot.getFrontDistance();
-        //double distanceToMove = 960;
-        //if (distanceToWall >  0)
-        //    distanceToMove = (distanceToWall - 1600) - (1600 - 960);
 
         // move toward bucket wall
         if (opModeIsActive())
@@ -130,20 +120,6 @@ public class BucketAutoVisionRed extends LinearOpMode {
         if(opModeIsActive())
             robot.turn(-2.30, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
-        /* This is an example of using the Pose3D returned for an AprilTag from the vision processor
-         * to measure error between where we are and where the robot is supposed to be to make
-         * (possibly multiple, different) corrections before
-         * proceeding.
-         */
-        // Get the pose of AprilTag 16 using camera 1, and calculate the error in heading and y
-        // Nominal reading here is yaw of 0 and y = 850
-        robot.switchCamera(1);
-        AprilTagPoseFtc pose = robot.getAprilTagPose(1, 16);
-        double headingError = (Math.PI / 2.0) - pose.yaw;
-        double yError = 850 - pose.y;
-
-        robot.switchCamera(0);
-
         //move to box
         if(opModeIsActive())
             robot.forward(850,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
@@ -152,9 +128,22 @@ public class BucketAutoVisionRed extends LinearOpMode {
         if(opModeIsActive())
             robot.turn(-Math.PI/2, RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
+        /* This is an example of using the distance sensor(s) to measure a distance after a move
+         * to calculate the next move
+         */
+        // Measure the distance to the bucket wall using the rear distance sensor, and
+        // then calculate the distance to move towards the submersible.
+        // NOTE: Using the nominal opmode odometry, after the turn this distance reads roughly
+        // 580 mm. The original move amount was 270
+        distanceToWall = robot.getRearDistance();
+        distanceToMove = 260 - (distanceToWall - 580);
+        // add telemetry for debugging
+        telemetry.addData("Distance to Wall", "%6.1f mm", distanceToWall);
+        telemetry.update();
+
         //go to box thing
         if (opModeIsActive())
-            robot.forward(270,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
+            robot.forward(distanceToMove,RobotHardware.MOTOR_SPEED_FACTOR_AUTONOMOUS);
 
         //extend the arm
         if (opModeIsActive())
