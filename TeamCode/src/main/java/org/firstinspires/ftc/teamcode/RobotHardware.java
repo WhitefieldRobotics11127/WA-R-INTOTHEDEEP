@@ -77,7 +77,7 @@ public class RobotHardware {
      * NOTE: Fully upright arm is the "minimum" position (within 0.0 to 1.0 range) in order to 
      * directly track with position sensor (potentiometer) values. 
      */
-    public static final double ARM_ROTATION_MIN = 0.10;
+    public static final double ARM_ROTATION_MIN = 0.0;
     /**
      * Maximum safe rotational position for arm.
      * NOTE: Fully rotated down is the "maximum" position (within 0.0 to 1.0 range) in order to 
@@ -230,14 +230,15 @@ public class RobotHardware {
     // -90, pointing right is 180 degrees, and pointing backward is 90 degrees. Also, a pitch of 0
     // would have the camera pointing straight up, so we need to set the pitch to -90 degrees
     // (rotation about the x-axis), meaning the camera is horizontal.
+    // NOTE: Camera 1 is right-side camera and Camera 2 is left-side camera
     private final Position cam1Position = new Position(DistanceUnit.MM,
-            -205.0, -36.0, 105.0, 0);
-    private final YawPitchRollAngles cam1Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
-            0, -90, 0, 0);
-    private final Position cam2Position = new Position(DistanceUnit.MM,
             205.0, -36.0, 105.0, 0);
-    private final YawPitchRollAngles cam2Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+    private final YawPitchRollAngles cam1Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             180, -90, 0, 0);
+    private final Position cam2Position = new Position(DistanceUnit.MM,
+            -205.0, -36.0, 105.0, 0);
+    private final YawPitchRollAngles cam2Orientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+            0, -90, 0, 0);
 
     /*
      * Hardware objects for current robot hardware.
