@@ -4,9 +4,6 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
-import org.openftc.apriltag.AprilTagPose;
-
 /*
  * Autonomous OpMode for Bucket Side operation in 2024-2025 INTO THE DEEP season.
  */
@@ -14,7 +11,7 @@ import org.openftc.apriltag.AprilTagPose;
 @Autonomous(name="Bucket Auto Vision - Red", group="Test", preselectTeleOp = "Two-controller Teleop")
 //@Disabled
 
-public class BucketAutoVisionRed extends LinearOpMode {
+public class BucketAutoVisionBlue extends LinearOpMode {
 
     // Create a RobotHardware object to be used to access robot hardware.
     // Prefix any hardware functions with "robot." to access this class.
@@ -82,7 +79,7 @@ public class BucketAutoVisionRed extends LinearOpMode {
          * opmode.
          */
         // Measure the longitudinal (y) distance to the bucket wall using left side camera (Camera 2)
-        // and tag 16 and then calculate distance to move towards bucket.
+        // and tag 13 and calculate distance to move towards bucket.
         // NOTE: Using the nominal starting position, this distance roughly reads distance 1197 mm.
         // The original distance of this move was 960 mm
         // NOTE: This is the difference between Red and Blue. For Red alliance, the left side camera
@@ -91,7 +88,7 @@ public class BucketAutoVisionRed extends LinearOpMode {
         // taking the measurements and then disables the camera afterwards, so no need to do that
         // here
         double distanceToMove = 960;
-        double distanceToWall = robot.getLongitudinalDistanceToAprilTag(2, 16);
+        double distanceToWall = robot.getLongitudinalDistanceToAprilTag(2, 13);
         // add telemetry for debugging
         telemetry.addData("Distance to Wall", "%6.1f mm", distanceToWall);
         telemetry.update();

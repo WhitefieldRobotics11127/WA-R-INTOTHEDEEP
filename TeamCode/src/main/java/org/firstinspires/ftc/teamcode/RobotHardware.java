@@ -156,7 +156,7 @@ public class RobotHardware {
     // out how to reposition based on AprilTag poses and/or distance sensors.
     public static final double X_POSITION_TOLERANCE = 10; // Tolerance for position in MM (~ 1/2 inch)
     public static final double Y_POSITION_TOLERANCE = 10; // Tolerance for position in MM (~ 1/2 inch)
-    public static final double HEADING_TOLERANCE = 0.034; // Tolerance for heading in radians (~2 degrees)
+    public static final double HEADING_TOLERANCE = 0.035; // Tolerance for heading in radians (~2 degrees)
     //static final double X_CONTROLLER_DEADBAND = 3.175; // Deadband range for X power calculation. Should be less than MOVE_POSITION_TOLERANCE
     //static final double Y_CONTROLLER_DEADBAND = 3.175; // Deadband range for Y power calculation. Should be less than MOVE_POSITION_TOLERANCE
     //static final double YAW_CONTROLLER_DEADBAND = 0.01; // Deadband range for Yaw power calculation. Should be less than HEADING_TOLERANCE
