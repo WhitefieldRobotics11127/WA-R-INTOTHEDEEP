@@ -53,7 +53,7 @@ public class RungAutoOpMode extends LinearOpMode {
 
         //retract arm
         if (opModeIsActive())
-            robot.setArmExtension(0);
+            robot.setArmExtension(50);
 
         //rotate arm fully downward
         if (opModeIsActive())

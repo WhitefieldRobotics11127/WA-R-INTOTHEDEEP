@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Autonomous OpMode for Bucket Side operation in 2024-2025 INTO THE DEEP season.
  */
 
-@Autonomous(name="Bucket Auto Vision - Red", group="Test", preselectTeleOp = "Two-controller Teleop")
+@Autonomous(name="Bucket Auto Vision - Blue", group="Competition", preselectTeleOp = "Two-controller Teleop")
 //@Disabled
 
 public class BucketAutoVisionBlue extends LinearOpMode {

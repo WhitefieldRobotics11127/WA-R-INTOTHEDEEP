@@ -11,7 +11,7 @@ import org.openftc.apriltag.AprilTagPose;
  * Autonomous OpMode for Bucket Side operation in 2024-2025 INTO THE DEEP season.
  */
 
-@Autonomous(name="Bucket Auto Vision - Red", group="Test", preselectTeleOp = "Two-controller Teleop")
+@Autonomous(name="Bucket Auto Vision - Red", group="Competition", preselectTeleOp = "Two-controller Teleop")
 //@Disabled
 
 public class BucketAutoVisionRed extends LinearOpMode {
