@@ -4,9 +4,6 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
-import org.openftc.apriltag.AprilTagPose;
-
 /*
  * Autonomous OpMode for Bucket Side operation in 2024-2025 INTO THE DEEP season.
  */

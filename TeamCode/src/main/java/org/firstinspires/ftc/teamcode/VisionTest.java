@@ -15,7 +15,7 @@ import java.util.List;
 /*
  * OpMode to test vision and retrieve AprilTag pose and distance readings
  */
-@TeleOp(name= "Vision/Distance Measurements", group="Test")
+@TeleOp(name= "Vision/Distance-enabled Teleop", group="Test")
 //@Disabled
 public class VisionTest extends OpMode
 {
